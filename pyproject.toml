@@ -1,7 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "pylogfile"
+version = 0.0.0
 authors = [
   { name="Grant Giesbrecht", email="grant.giesbrecht@colorado.edu" },
 ]
-version = 0.0.0
 description = "Universal log files for Python"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+[project.urls]
+Homepage = "https://github.com/Grant-Giesbrecht/pylogfile"
+Issues = "https://github.com/Grant-Giesbrecht/pylogfile/issues"
