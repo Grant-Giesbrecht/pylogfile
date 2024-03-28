@@ -1,0 +1,7 @@
+[project]
+name = "pylogfile"
+authors = [
+  { name="Grant Giesbrecht", email="grant.giesbrecht@colorado.edu" },
+]
+version = 0.0.0
+description = "Universal log files for Python"
