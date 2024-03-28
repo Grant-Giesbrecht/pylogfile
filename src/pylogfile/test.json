@@ -1,0 +1,14 @@
+{
+    "logs": [
+        {
+            "message": "Erorr test",
+            "timestamp": "2024-03-28 15:11:44.676772",
+            "level": "ERROR"
+        },
+        {
+            "message": "Erorr test",
+            "timestamp": "2024-03-28 15:11:45.861037",
+            "level": "ERROR"
+        }
+    ]
+}

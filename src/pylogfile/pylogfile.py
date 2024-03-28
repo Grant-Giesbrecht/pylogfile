@@ -89,5 +89,5 @@ class LogFile:
 		
 		# Open file
 		with open(save_filename, 'w') as fh:
-			json.dump({"logs":self.get_json()}, fh)
+			json.dump({"logs":self.get_json()}, fh, indent=4)
 			
