@@ -10,3 +10,5 @@ log.warning("Spooky scary", detail="lbasdfpjklASDF asd jkhAS DJKL asd jklhgdf as
 log.error("This is an error!")
 log.critical("Oh no I'm dead XX", detail="asdfjklhasdfb jkasdfasdjkfasdkfjhasdjklg")
 
+log2 = LogPile()
+log2.load_json("test.log")

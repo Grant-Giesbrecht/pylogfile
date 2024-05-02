@@ -3,6 +3,7 @@ import json
 from dataclasses import dataclass, field
 from colorama import Fore, Style, Back
 import re
+import h5py
 
 #TODO: Save only certain log levels
 #TODO: Autosave
@@ -22,13 +23,16 @@ class LogEntry:
 	
 	default_format = LogFormat()
 	
-	DEBUG = 10
-	INFO = 20
-	WARNING = 30
-	ERROR = 40
-	CRITICAL = 50
+	RECORD = -15		# (Special) Used for recording the status of an experiment for scientific integrity. Useful for record keeping, but shouldn't need to be viewed unless verifying details of an experiment.
+	CORE = -25		# (Special) Used for reporting core scientific changes and results
 	
-	def __init__(self, level:int, message:str, detail:str=None):
+	DEBUG = 10		# Used for debugging
+	INFO = 20		# Used for reporting basic high-level program functioning (that does not involve an error)
+	WARNING = 30 	# Warning for software
+	ERROR = 40		# Software error
+	CRITICAL = 50	# Critical error
+	
+	def __init__(self, level:int=0, message:str="", detail:str=None):
 		
 		# Set timestamp
 		self.timestamp = datetime.datetime.now()
@@ -43,12 +47,51 @@ class LogEntry:
 		self.message = message
 		self.detail = detail
 	
+	def init_dict(self, data_dict:dict) -> bool:
+		
+		# Extract data from dict
+		try:
+			lvl = data_dict['level']
+			msg = data_dict['message']
+			dtl = data_dict['detail']
+			ts = data_dict['timestamp']
+		except:
+			return False
+		
+		# Set level
+		if lvl == "DEBUG":
+			self.level = LogEntry.DEBUG
+		elif lvl == "RECORD":
+			self.level = LogEntry.RECORD
+		elif lvl == "INFO":
+			self.level = LogEntry.INFO
+		elif lvl == "CORE":
+			self.level = LogEntry.CORE
+		elif lvl == "WARNING":
+			self.level = LogEntry.WARNING
+		elif lvl == "ERROR":
+			self.level = LogEntry.ERROR
+		elif lvl == "CRITICAL":
+			self.level = LogEntry.CRITICAL
+		else:
+			return False
+		
+		self.message = msg # Set message
+		self.detail = dtl
+		self.timestamp = datetime.datetime.strptime(ts, '%Y-%m-%d %H:%M:%S.%f')
+		
+		return True
+	
 	def get_level_str(self):
 		
 		if self.level == LogEntry.DEBUG:
 			return "DEBUG"
+		elif self.level == LogEntry.RECORD:
+			return "RECORD"
 		elif self.level == LogEntry.INFO:
 			return "INFO"
+		elif self.level == LogEntry.CORE:
+			return "CORE"
 		elif self.level == LogEntry.WARNING:
 			return "WARNING"
 		elif self.level == LogEntry.ERROR:
@@ -59,13 +102,13 @@ class LogEntry:
 			return "??"
 		
 	def get_dict(self):
-		return {"message":self.message, "detail":self.detail, "timestamp":str(self.timestamp), "level":self.get_level_str()}
+		return {"message":self.message, "detail":self.detail, "timestamp":str(self.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')) , "level":self.get_level_str()}
 	
 	def get_json(self):
 		return json.dumps(self.get_dict())
 	
-	def str(self, str_fmt:LogFormat) -> str:
-		''' Represent the '''
+	def str(self, str_fmt:LogFormat=None) -> str:
+		''' Represent the log entry as a string.'''
 		
 		# Get format specifier
 		if str_fmt is None:
@@ -280,16 +323,34 @@ class LogPile:
 	def get_json(self):
 		pass
 	
-	def get_arraydict(self):
-		''' Returns an array of dictionaries for each log'''
-		return [x.get_dict() for x in self.logs]
-	
 	def save_json(self, save_filename:str):
 		''' Saves all log data to a JSON file '''
 		
+		ad = [x.get_dict() for x in self.logs]
+		
 		# Open file
 		with open(save_filename, 'w') as fh:
-			json.dump({"logs":self.get_arraydict()}, fh, indent=4)
+			json.dump({"logs":ad}, fh, indent=4)
+	
+	def load_json(self, read_filename:str):
+		
+		all_success = True
+		
+		# Read JSON dictionary
+		with open(read_filename, 'r') as fh:
+			ad = json.load(fh)
+			
+		print(ad)
+		
+		# Populate logs
+		for led in ad['logs']:
+			nl = LogEntry()
+			if nl.init_dict(led):
+				self.logs.append(nl)
+			else:
+				all_success = False
+		
+		return all_success
 	
 	def save_txt(self):
 		pass
@@ -299,3 +360,10 @@ class LogPile:
 	
 	def read_json(self):
 		pass
+	
+	def save_hdf5(self, filename:str):
+		pass
+		# # Open hdf5 file
+		# with h5py.File(filename, 'w') as f:
+			
+		# 	dslog = f.create_dataset('log')
