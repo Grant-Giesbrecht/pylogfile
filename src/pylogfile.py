@@ -14,8 +14,9 @@ import re
 class LogFormat:
 	
 	show_detail:bool = False
+	use_color:bool = True
 	default_color:dict = field(default_factory=lambda: {"main": Fore.WHITE+Back.RESET, "bold": Fore.LIGHTBLUE_EX, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN})
-	detail_indent:str = "\L "
+	detail_indent:str = "\t "
 
 class LogEntry:
 	
@@ -63,128 +64,150 @@ class LogEntry:
 	def get_json(self):
 		return json.dumps(self.get_dict())
 	
-	def str(self, format:LogFormat):
+	def str(self, str_fmt:LogFormat) -> str:
+		''' Represent the '''
 		
-		if format is None:
-			format = LogEntry.default_format
+		# Get format specifier
+		if str_fmt is None:
+			str_fmt = LogEntry.default_format
 		
-		c_main = format.default_color['main']
-		c_bold = format.default_color['bold']
-		c_quiet = format.default_color['quiet']
-		c_alt = format.default_color['alt']
-		c_label = format.default_color['label']
+		# Apply or wipe colors
+		if str_fmt.use_color:
+			c_main = str_fmt.default_color['main']
+			c_bold = str_fmt.default_color['bold']
+			c_quiet = str_fmt.default_color['quiet']
+			c_alt = str_fmt.default_color['alt']
+			c_label = str_fmt.default_color['label']
+		else:
+			c_main = ''
+			c_bold = ''
+			c_quiet = ''
+			c_alt = ''
+			c_label = ''
 		
-		s = f"{c_alt}[{c_label}{self.get_level_str()}{c_alt}]{c_main} {self.message} {c_quiet}| {self.timestamp}"
+		# Create base string
+		s = f"{c_alt}[{c_label}{self.get_level_str()}{c_alt}]{c_main} {markdown(self.message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
 		
-		if format.show_detail:
-			s = s + f"\n{format.detail_indent}{c_quiet}{self.detail}"
+		# Add detail if requested
+		if str_fmt.show_detail and self.detail is not None:
+			s = s + f"\n{str_fmt.detail_indent}{c_quiet}{self.detail}"
+		
+		return s
 	
-	def color_markdown(self, msg:str, format:LogFormat=None):
-		""" Logs a message. Applys rules:
-			> Temporarily change to bold
-			< Revert to previous color
-			
-			>:n Temporariliy change to color 'n'. n-codes: Case insensitive
-				1 or m: Main
-				2 or b: Bold
-				3 or q: Quiet
-				4 or a: Alt
-				5 or l: Label
-			
-			>> Permanently change to bold
-			>>:n Permanently change to color n
-			
-			\\>, \\<, Type character without color adjustment. So to get >>:3
-			  to appear you'd type \\>\\>:3.
-			
-			If you want to type > followed by a character
-			
-		"""
+def markdown(msg:str, str_fmt:LogFormat=None) -> str:
+	""" Applys Pylogfile markdown
+		> Temporarily change to bold
+		< Revert to previous color
 		
-		if format is None:
-			format = LogEntry.default_format
+		>:n Temporariliy change to color 'n'. n-codes: Case insensitive
+			1 or m: Main
+			2 or b: Bold
+			3 or q: Quiet
+			4 or a: Alt
+			5 or l: Label
 		
-		# Create local variables for color
-		c_main = format.default_color['main']
-		c_bold = format.default_color['bold']
-		c_quiet = format.default_color['quiet']
-		c_alt = format.default_color['alt']
-		c_label = format.default_color['label']
+		>> Permanently change to bold
+		>>:n Permanently change to color n
 		
-		# This is the color that a return character will restore
-		return_color = c_main
+		\\>, \\<, Type character without color adjustment. So to get >>:3
+			to appear you'd type \\>\\>:3.
 		
-		# Get every index of '>', '<', and '\\'
-		idx = 0
-		replacements = []
-		while idx < len(msg):
-			
-			# Look for escape character
-			if msg[idx] == '\\':
-				
-				# If next character is > or <, remove the escape
-				if idx+1 < len(msg) and msg[idx+1] == '>':
-					replacements.append({'text': '>', 'idx_start': idx, 'idx_end': idx+1})
-				elif idx+1 < len(msg) and msg[idx+1] == '<':
-					replacements.append({'text': '<', 'idx_start': idx, 'idx_end': idx+1})
-				
-				idx += 2 # Skip next character - restart
-				continue
-			
-			# Look for non-escaped >
-			elif msg[idx] == '>':
-				
-				idx_start = idx
-				is_permanent = False
-				color_spec = c_bold
-				is_invalid = False
-				
-				# Check for permanent change
-				if idx+1 < len(msg) and msg[idx+1] == '>': # Permanent change
-					is_permanent = True
-					idx += 1
-				
-				# Check for color specifier
-				if idx+2 < len(msg) and msg[idx+1] == ':': # Found color specifier
-					
-					if msg[idx+2].upper() in ['1', 'M']:
-						color_spec = c_main
-					elif msg[idx+2].upper() in ['2', 'B']:
-						color_spec = c_bold
-					elif msg[idx+2].upper() in ['3', 'Q']:
-						color_spec = c_quiet
-					elif msg[idx+2].upper() in ['4', 'A']:
-						color_spec = c_alt
-					elif msg[idx+2].upper() in ['5', 'L']:
-						color_spec = c_label
-					else:
-						# Unrecognized code, do not modify
-						is_invalid = True
-					
-					idx += 2
-				
-				# Apply changes and text replacements
-				if not is_invalid:
-					replacements.append({'text': color_spec, 'idx_start': idx_start, 'idx_end':idx})
-					
-					# If permanent apply change
-					if is_permanent:
-						return_color = color_spec
-			
-			# Look for non-escaped <
-			elif msg[idx] == '<':
-				
-				replacements.append({'text': return_color, 'idx_start': idx, 'idx_end': idx})
-			
-			# Increment counter
-			idx += 1
-			
-		# Apply replacements
-		rich_msg = msg
-		for rpl in reversed(replacements):
-			rich_msg = rich_msg[:rpl['idx_start']] + rpl['text'] + rich_msg[rpl['idx_end']+1:]
+		If you want to type > followed by a character
 		
-		return rich_msg
+	"""
+	
+	# Get default format
+	if str_fmt is None:
+		str_fmt = LogEntry.default_format
+	
+	# Apply or wipe colors
+	if str_fmt.use_color:
+		c_main = str_fmt.default_color['main']
+		c_bold = str_fmt.default_color['bold']
+		c_quiet = str_fmt.default_color['quiet']
+		c_alt = str_fmt.default_color['alt']
+		c_label = str_fmt.default_color['label']
+	else:
+		c_main = ''
+		c_bold = ''
+		c_quiet = ''
+		c_alt = ''
+		c_label = ''
+	
+	# This is the color that a return character will restore
+	return_color = c_main
+	
+	# Get every index of '>', '<', and '\\'
+	idx = 0
+	replacements = []
+	while idx < len(msg):
+		
+		# Look for escape character
+		if msg[idx] == '\\':
+			
+			# If next character is > or <, remove the escape
+			if idx+1 < len(msg) and msg[idx+1] == '>':
+				replacements.append({'text': '>', 'idx_start': idx, 'idx_end': idx+1})
+			elif idx+1 < len(msg) and msg[idx+1] == '<':
+				replacements.append({'text': '<', 'idx_start': idx, 'idx_end': idx+1})
+			
+			idx += 2 # Skip next character - restart
+			continue
+		
+		# Look for non-escaped >
+		elif msg[idx] == '>':
+			
+			idx_start = idx
+			is_permanent = False
+			color_spec = c_bold
+			is_invalid = False
+			
+			# Check for permanent change
+			if idx+1 < len(msg) and msg[idx+1] == '>': # Permanent change
+				is_permanent = True
+				idx += 1
+			
+			# Check for color specifier
+			if idx+2 < len(msg) and msg[idx+1] == ':': # Found color specifier
+				
+				if msg[idx+2].upper() in ['1', 'M']:
+					color_spec = c_main
+				elif msg[idx+2].upper() in ['2', 'B']:
+					color_spec = c_bold
+				elif msg[idx+2].upper() in ['3', 'Q']:
+					color_spec = c_quiet
+				elif msg[idx+2].upper() in ['4', 'A']:
+					color_spec = c_alt
+				elif msg[idx+2].upper() in ['5', 'L']:
+					color_spec = c_label
+				else:
+					# Unrecognized code, do not modify
+					is_invalid = True
+				
+				idx += 2
+			
+			# Apply changes and text replacements
+			if not is_invalid:
+				replacements.append({'text': color_spec, 'idx_start': idx_start, 'idx_end':idx})
+				
+				# If permanent apply change
+				if is_permanent:
+					return_color = color_spec
+		
+		# Look for non-escaped <
+		elif msg[idx] == '<':
+			
+			replacements.append({'text': return_color, 'idx_start': idx, 'idx_end': idx})
+		
+		# Increment counter
+		idx += 1
+		
+	# Apply replacements
+	rich_msg = msg
+	for rpl in reversed(replacements):
+		rich_msg = rich_msg[:rpl['idx_start']] + rpl['text'] + rich_msg[rpl['idx_end']+1:]
+	
+	return rich_msg
 		
 
 class LogPile:
@@ -192,7 +215,11 @@ class LogPile:
 	JSON = "format-json"
 	TXT = "format-txt"
 	
-	def __init__(self, filename:str="", autosave:bool=False):
+	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None):
+		
+		# Initialize format with defautl
+		if str_fmt is None:
+			str_fmt = LogFormat()
 		
 		self.terminal_output_enable = True
 		self.terminal_output_details = False
@@ -204,57 +231,51 @@ class LogPile:
 		self.autosave_level = LogEntry.INFO
 		self.autosave_format = LogPile.JSON
 		
+		self.str_format = str_fmt
+		
 		self.logs = []
 	
-	def debug(self, message:str):
+	def debug(self, message:str, detail:str=None):
 		''' Logs data at DEBUG level. '''
 		
-		# Create new log object
-		nl = LogEntry(LogEntry.DEBUG, message)
-		
-		# Add to list
-		self.logs.append(nl)
+		self.add_log(LogEntry.DEBUG, message, detail=detail)
 	
-	def info(self, message:str):
+	def info(self, message:str, detail:str=None):
 		''' Logs data at INFO level. '''
 		
-		# Create new log object
-		nl = LogEntry(LogEntry.INFO, message)
-		
-		# Add to list
-		self.logs.append(nl)
+		self.add_log(LogEntry.INFO, message, detail=detail)
 	
-	def warning(self, message:str):
+	def warning(self, message:str, detail:str=None):
 		''' Logs data at WARNING level. '''
 		
-		# Create new log object
-		nl = LogEntry(LogEntry.WARNING, message)
-		
-		# Add to list
-		self.logs.append(nl)
+		self.add_log(LogEntry.WARNING, message, detail=detail)
 	
-	def error(self, message:str):
+	def error(self, message:str, detail:str=None):
 		''' Logs data at ERROR level. '''
 		
-		# Create new log object
-		nl = LogEntry(LogEntry.ERROR, message)
-		
-		# Add to list
-		self.logs.append(nl)
+		self.add_log(LogEntry.ERROR, message, detail=detail)
 
-	def critical(self, message:str):
+	def critical(self, message:str, detail:str=None):
 		''' Logs data at CRITICAL level. '''
 		
+		self.add_log(LogEntry.CRITICAL, message, detail=detail)
+	
+	def add_log(self, level:int, message:str, detail:str=None):
+		
 		# Create new log object
-		nl = LogEntry(LogEntry.CRITICAL, message)
+		nl = LogEntry(level, message, detail=detail)
 		
 		# Add to list
 		self.logs.append(nl)
-	
-	def handle_new_log(self, nl:LogEntry):
 		
+		# Process new log with any auto-running features
+		self.run_new_log(nl)
+	
+	def run_new_log(self, nl:LogEntry):
+		
+		# Print to terminal
 		if self.terminal_output_enable:
-			self.print(nl.str())
+			print(nl.str(self.str_format))
 	
 	def get_json(self):
 		pass
