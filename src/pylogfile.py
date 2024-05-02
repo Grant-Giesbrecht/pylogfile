@@ -1,11 +1,21 @@
 import datetime
 import json
+from dataclasses import dataclass
+from colorama import Fore, Style, Back
+import re
 
 #TODO: Save only certain log levels
 #TODO: Autosave
 #TODO: Log more info
 #TODO: Log to string etc
 #TODO: Integrate with logger
+
+@dataclass
+class LogFormat:
+	
+	show_detail:bool = False
+	default_color:dict = {"main": Fore.WHITE+Back.RESET, "bold": Fore.GREEN, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN}
+	detail_indent:str = "\L "
 
 class LogEntry:
 	
@@ -50,6 +60,45 @@ class LogEntry:
 	
 	def get_json(self):
 		return json.dumps(self.get_dict())
+	
+	def str(self, format:LogFormat):
+		
+		c_main = format.default_color['main']
+		c_bold = format.default_color['bold']
+		c_quiet = format.default_color['quiet']
+		c_alt = format.default_color['alt']
+		c_label = format.default_color['label']
+		
+		s = f"{c_alt}[{c_label}{self.get_level_str()}{c_alt}]{c_main} {self.message} {c_quiet}| {self.timestamp}"
+		
+		if format.show_detail:
+			s = s + f"\n{format.detail_indent}{c_quiet}{self.detail}"
+	
+	def color_markdown(self, msg:str):
+		""" Logs a message. Applys rules:
+			> Temporarily changes color to bold
+			< retursn color to that prior to priming (uses standard if not specified in msg string).
+			>1 < main
+			>>1 permanent to main
+			>2
+			\\>, \\<, Type character without color adjustment.
+			
+		"""
+		
+		main_color = Fore.LIGHTBLACK_EX
+		prime_color = Fore.WHITE
+		
+		rich_msg = f"{main_color}{msg}{Style.RESET_ALL}"
+		
+		# Replace > < that are not escaped with color
+		rich_msg = re.sub("(?<!\\\\)>", f"{prime_color}", rich_msg)
+		rich_msg = re.sub("(?<!\\\\)<", f"{main_color}", rich_msg)
+		
+		# Remove escape characters
+		rich_msg = rich_msg.replace("\\>", f">")
+		rich_msg = rich_msg.replace("\\<", f"<")
+		
+		return rich_msg
 		
 
 class LogPile:
@@ -115,6 +164,11 @@ class LogPile:
 		
 		# Add to list
 		self.logs.append(nl)
+	
+	def handle_new_log(self, nl:LogEntry):
+		
+		if self.terminal_output_enable:
+			self.print(nl.str())
 	
 	def get_json(self):
 		pass
