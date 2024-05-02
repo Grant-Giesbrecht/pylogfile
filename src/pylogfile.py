@@ -1,6 +1,6 @@
 import datetime
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from colorama import Fore, Style, Back
 import re
 
@@ -14,10 +14,12 @@ import re
 class LogFormat:
 	
 	show_detail:bool = False
-	default_color:dict = {"main": Fore.WHITE+Back.RESET, "bold": Fore.GREEN, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN}
+	default_color:dict = field(default_factory=lambda: {"main": Fore.WHITE+Back.RESET, "bold": Fore.LIGHTBLUE_EX, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN})
 	detail_indent:str = "\L "
 
 class LogEntry:
+	
+	default_format = LogFormat()
 	
 	DEBUG = 10
 	INFO = 20
@@ -63,6 +65,9 @@ class LogEntry:
 	
 	def str(self, format:LogFormat):
 		
+		if format is None:
+			format = LogEntry.default_format
+		
 		c_main = format.default_color['main']
 		c_bold = format.default_color['bold']
 		c_quiet = format.default_color['quiet']
@@ -74,29 +79,110 @@ class LogEntry:
 		if format.show_detail:
 			s = s + f"\n{format.detail_indent}{c_quiet}{self.detail}"
 	
-	def color_markdown(self, msg:str):
+	def color_markdown(self, msg:str, format:LogFormat=None):
 		""" Logs a message. Applys rules:
-			> Temporarily changes color to bold
-			< retursn color to that prior to priming (uses standard if not specified in msg string).
-			>1 < main
-			>>1 permanent to main
-			>2
-			\\>, \\<, Type character without color adjustment.
+			> Temporarily change to bold
+			< Revert to previous color
+			
+			>:n Temporariliy change to color 'n'. n-codes: Case insensitive
+				1 or m: Main
+				2 or b: Bold
+				3 or q: Quiet
+				4 or a: Alt
+				5 or l: Label
+			
+			>> Permanently change to bold
+			>>:n Permanently change to color n
+			
+			\\>, \\<, Type character without color adjustment. So to get >>:3
+			  to appear you'd type \\>\\>:3.
+			
+			If you want to type > followed by a character
 			
 		"""
 		
-		main_color = Fore.LIGHTBLACK_EX
-		prime_color = Fore.WHITE
+		if format is None:
+			format = LogEntry.default_format
 		
-		rich_msg = f"{main_color}{msg}{Style.RESET_ALL}"
+		# Create local variables for color
+		c_main = format.default_color['main']
+		c_bold = format.default_color['bold']
+		c_quiet = format.default_color['quiet']
+		c_alt = format.default_color['alt']
+		c_label = format.default_color['label']
 		
-		# Replace > < that are not escaped with color
-		rich_msg = re.sub("(?<!\\\\)>", f"{prime_color}", rich_msg)
-		rich_msg = re.sub("(?<!\\\\)<", f"{main_color}", rich_msg)
+		# This is the color that a return character will restore
+		return_color = c_main
 		
-		# Remove escape characters
-		rich_msg = rich_msg.replace("\\>", f">")
-		rich_msg = rich_msg.replace("\\<", f"<")
+		# Get every index of '>', '<', and '\\'
+		idx = 0
+		replacements = []
+		while idx < len(msg):
+			
+			# Look for escape character
+			if msg[idx] == '\\':
+				
+				# If next character is > or <, remove the escape
+				if idx+1 < len(msg) and msg[idx+1] == '>':
+					replacements.append({'text': '>', 'idx_start': idx, 'idx_end': idx+1})
+				elif idx+1 < len(msg) and msg[idx+1] == '<':
+					replacements.append({'text': '<', 'idx_start': idx, 'idx_end': idx+1})
+				
+				idx += 2 # Skip next character - restart
+				continue
+			
+			# Look for non-escaped >
+			elif msg[idx] == '>':
+				
+				idx_start = idx
+				is_permanent = False
+				color_spec = c_bold
+				is_invalid = False
+				
+				# Check for permanent change
+				if idx+1 < len(msg) and msg[idx+1] == '>': # Permanent change
+					is_permanent = True
+					idx += 1
+				
+				# Check for color specifier
+				if idx+2 < len(msg) and msg[idx+1] == ':': # Found color specifier
+					
+					if msg[idx+2].upper() in ['1', 'M']:
+						color_spec = c_main
+					elif msg[idx+2].upper() in ['2', 'B']:
+						color_spec = c_bold
+					elif msg[idx+2].upper() in ['3', 'Q']:
+						color_spec = c_quiet
+					elif msg[idx+2].upper() in ['4', 'A']:
+						color_spec = c_alt
+					elif msg[idx+2].upper() in ['5', 'L']:
+						color_spec = c_label
+					else:
+						# Unrecognized code, do not modify
+						is_invalid = True
+					
+					idx += 2
+				
+				# Apply changes and text replacements
+				if not is_invalid:
+					replacements.append({'text': color_spec, 'idx_start': idx_start, 'idx_end':idx})
+					
+					# If permanent apply change
+					if is_permanent:
+						return_color = color_spec
+			
+			# Look for non-escaped <
+			elif msg[idx] == '<':
+				
+				replacements.append({'text': return_color, 'idx_start': idx, 'idx_end': idx})
+			
+			# Increment counter
+			idx += 1
+			
+		# Apply replacements
+		rich_msg = msg
+		for rpl in reversed(replacements):
+			rich_msg = rich_msg[:rpl['idx_start']] + rpl['text'] + rich_msg[rpl['idx_end']+1:]
 		
 		return rich_msg
 		
