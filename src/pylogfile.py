@@ -320,13 +320,13 @@ class LogPile:
 		if self.terminal_output_enable:
 			print(nl.str(self.str_format))
 	
-	def get_json(self):
+	def to_dict(self):
 		return [x.get_dict() for x in self.logs]
 	
 	def save_json(self, save_filename:str):
 		''' Saves all log data to a JSON file '''
 		
-		ad = self.get_json()
+		ad = self.to_dict()
 		
 		# Open file
 		with open(save_filename, 'w') as fh:
