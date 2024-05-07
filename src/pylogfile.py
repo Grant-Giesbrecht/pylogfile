@@ -3,7 +3,6 @@ import json
 from dataclasses import dataclass, field
 from colorama import Fore, Style, Back
 import re
-import h5py
 
 #TODO: Save only certain log levels
 #TODO: Autosave
