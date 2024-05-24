@@ -10,13 +10,23 @@ import re
 #TODO: Log to string etc
 #TODO: Integrate with logger
 
+#TODO: Make the keys in color_overrides match the variables in LogEntry (currently undefined)
 @dataclass
 class LogFormat:
 	
 	show_detail:bool = False
 	use_color:bool = True
 	default_color:dict = field(default_factory=lambda: {"main": Fore.WHITE+Back.RESET, "bold": Fore.LIGHTBLUE_EX, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN})
+	color_overrides:dict = field(default_factory=lambda: {10: {"label": Fore.LIGHTBLACK_EX},
+														20: {},
+														30: {"label": Fore.YELLOW},
+														40: {"label": Fore.LIGHTRED_EX},
+														50: {"label": Fore.RED},
+														-15: {"label": Fore.CYAN},
+														-25: {"label": Fore.CYAN}
+	})
 	detail_indent:str = "\t "
+	
 
 class LogEntry:
 	
@@ -120,6 +130,20 @@ class LogEntry:
 			c_quiet = str_fmt.default_color['quiet']
 			c_alt = str_fmt.default_color['alt']
 			c_label = str_fmt.default_color['label']
+			
+			# Apply log-level color-overrides
+			if self.level in str_fmt.color_overrides:
+				if 'main' in str_fmt.color_overrides[self.level]:
+					c_main = str_fmt.color_overrides[self.level]['main']
+				if 'bold' in str_fmt.color_overrides[self.level]:
+					c_bold = str_fmt.color_overrides[self.level]['bold']
+				if 'quiet' in str_fmt.color_overrides[self.level]:
+					c_quiet = str_fmt.color_overrides[self.level]['quiet']
+				if 'alt' in str_fmt.color_overrides[self.level]:
+					c_alt = str_fmt.color_overrides[self.level]['alt']
+				if 'label' in str_fmt.color_overrides[self.level]:
+					c_label = str_fmt.color_overrides[self.level]['label']
+				
 		else:
 			c_main = ''
 			c_bold = ''
