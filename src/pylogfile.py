@@ -3,12 +3,24 @@ import json
 from dataclasses import dataclass, field
 from colorama import Fore, Style, Back
 import re
+import numpy as np
+import h5py
 
 #TODO: Save only certain log levels
 #TODO: Autosave
 #TODO: Log more info
 #TODO: Log to string etc
 #TODO: Integrate with logger
+
+RECORD = -15		# (Special) Used for recording the status of an experiment for scientific integrity. Useful for record keeping, but shouldn't need to be viewed unless verifying details of an experiment.
+CORE = -25		# (Special) Used for reporting core scientific changes and results
+
+NOTSET = 0
+DEBUG = 10		# Used for debugging
+INFO = 20		# Used for reporting basic high-level program functioning (that does not involve an error)
+WARNING = 30 	# Warning for software
+ERROR = 40		# Software error
+CRITICAL = 50	# Critical error
 
 #TODO: Make the keys in color_overrides match the variables in LogEntry (currently undefined)
 @dataclass
@@ -17,38 +29,33 @@ class LogFormat:
 	show_detail:bool = False
 	use_color:bool = True
 	default_color:dict = field(default_factory=lambda: {"main": Fore.WHITE+Back.RESET, "bold": Fore.LIGHTBLUE_EX, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN})
-	color_overrides:dict = field(default_factory=lambda: {10: {"label": Fore.LIGHTBLACK_EX},
-														20: {},
-														30: {"label": Fore.YELLOW},
-														40: {"label": Fore.LIGHTRED_EX},
-														50: {"label": Fore.RED},
-														-15: {"label": Fore.CYAN},
-														-25: {"label": Fore.CYAN}
+	color_overrides:dict = field(default_factory=lambda: {DEBUG: {"label": Fore.LIGHTBLACK_EX},
+														INFO: {},
+														WARNING: {"label": Fore.YELLOW},
+														ERROR: {"label": Fore.LIGHTRED_EX},
+														CRITICAL: {"label": Fore.RED},
+														RECORD: {"label": Fore.CYAN},
+														CORE: {"label": Fore.CYAN}
 	})
 	detail_indent:str = "\t "
-	
 
 class LogEntry:
 	
 	default_format = LogFormat()
 	
-	RECORD = -15		# (Special) Used for recording the status of an experiment for scientific integrity. Useful for record keeping, but shouldn't need to be viewed unless verifying details of an experiment.
-	CORE = -25		# (Special) Used for reporting core scientific changes and results
-	
-	DEBUG = 10		# Used for debugging
-	INFO = 20		# Used for reporting basic high-level program functioning (that does not involve an error)
-	WARNING = 30 	# Warning for software
-	ERROR = 40		# Software error
-	CRITICAL = 50	# Critical error
-	
-	def __init__(self, level:int=0, message:str="", detail:str=None):
+	def __init__(self, level:int=0, message:str="", detail:str=""):
 		
 		# Set timestamp
 		self.timestamp = datetime.datetime.now()
 		
+		if detail is None:
+			detail = ""
+		if message is None:
+			message = ""
+		
 		# Set level
-		if level not in [LogEntry.DEBUG, LogEntry.INFO, LogEntry.WARNING, LogEntry.ERROR, LogEntry.CRITICAL]:
-			self.level = LogEntry.INFO
+		if level not in [DEBUG, INFO, WARNING, ERROR, CRITICAL]:
+			self.level = INFO
 		else:
 			self.level = level
 		
@@ -69,19 +76,19 @@ class LogEntry:
 		
 		# Set level
 		if lvl == "DEBUG":
-			self.level = LogEntry.DEBUG
+			self.level = DEBUG
 		elif lvl == "RECORD":
-			self.level = LogEntry.RECORD
+			self.level = RECORD
 		elif lvl == "INFO":
-			self.level = LogEntry.INFO
+			self.level = INFO
 		elif lvl == "CORE":
-			self.level = LogEntry.CORE
+			self.level = CORE
 		elif lvl == "WARNING":
-			self.level = LogEntry.WARNING
+			self.level = WARNING
 		elif lvl == "ERROR":
-			self.level = LogEntry.ERROR
+			self.level = ERROR
 		elif lvl == "CRITICAL":
-			self.level = LogEntry.CRITICAL
+			self.level = CRITICAL
 		else:
 			return False
 		
@@ -93,19 +100,19 @@ class LogEntry:
 	
 	def get_level_str(self):
 		
-		if self.level == LogEntry.DEBUG:
+		if self.level == DEBUG:
 			return "DEBUG"
-		elif self.level == LogEntry.RECORD:
+		elif self.level == RECORD:
 			return "RECORD"
-		elif self.level == LogEntry.INFO:
+		elif self.level == INFO:
 			return "INFO"
-		elif self.level == LogEntry.CORE:
+		elif self.level == CORE:
 			return "CORE"
-		elif self.level == LogEntry.WARNING:
+		elif self.level == WARNING:
 			return "WARNING"
-		elif self.level == LogEntry.ERROR:
+		elif self.level == ERROR:
 			return "ERROR"
-		elif self.level == LogEntry.CRITICAL:
+		elif self.level == CRITICAL:
 			return "CRITICAL"
 		else:
 			return "??"
@@ -155,7 +162,7 @@ class LogEntry:
 		s = f"{c_alt}[{c_label}{self.get_level_str()}{c_alt}]{c_main} {markdown(self.message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
 		
 		# Add detail if requested
-		if str_fmt.show_detail and self.detail is not None:
+		if str_fmt.show_detail and len(self.detail) > 0:
 			s = s + f"\n{str_fmt.detail_indent}{c_quiet}{self.detail}"
 		
 		return s
@@ -289,44 +296,44 @@ class LogPile:
 		
 		self.terminal_output_enable = True
 		self.terminal_output_details = False
-		self.terminal_level = LogEntry.INFO
+		self.terminal_level = INFO
 		
 		self.autosave_enable = autosave
 		self.filename = filename
 		self.autosave_period_s = 300
-		self.autosave_level = LogEntry.INFO
+		self.autosave_level = INFO
 		self.autosave_format = LogPile.JSON
 		
 		self.str_format = str_fmt
 		
 		self.logs = []
 	
-	def debug(self, message:str, detail:str=None):
+	def debug(self, message:str, detail:str=""):
 		''' Logs data at DEBUG level. '''
 		
-		self.add_log(LogEntry.DEBUG, message, detail=detail)
+		self.add_log(DEBUG, message, detail=detail)
 	
-	def info(self, message:str, detail:str=None):
+	def info(self, message:str, detail:str=""):
 		''' Logs data at INFO level. '''
 		
-		self.add_log(LogEntry.INFO, message, detail=detail)
+		self.add_log(INFO, message, detail=detail)
 	
-	def warning(self, message:str, detail:str=None):
+	def warning(self, message:str, detail:str=""):
 		''' Logs data at WARNING level. '''
 		
-		self.add_log(LogEntry.WARNING, message, detail=detail)
+		self.add_log(WARNING, message, detail=detail)
 	
-	def error(self, message:str, detail:str=None):
+	def error(self, message:str, detail:str=""):
 		''' Logs data at ERROR level. '''
 		
-		self.add_log(LogEntry.ERROR, message, detail=detail)
+		self.add_log(ERROR, message, detail=detail)
 
-	def critical(self, message:str, detail:str=None):
+	def critical(self, message:str, detail:str=""):
 		''' Logs data at CRITICAL level. '''
 		
-		self.add_log(LogEntry.CRITICAL, message, detail=detail)
+		self.add_log(CRITICAL, message, detail=detail)
 	
-	def add_log(self, level:int, message:str, detail:str=None):
+	def add_log(self, level:int, message:str, detail:str=""):
 		
 		# Create new log object
 		nl = LogEntry(level, message, detail=detail)
@@ -341,7 +348,7 @@ class LogPile:
 		
 		# Print to terminal
 		if self.terminal_output_enable:
-			print(nl.str(self.str_format))
+			print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
 	
 	def to_dict(self):
 		return [x.get_dict() for x in self.logs]
@@ -362,8 +369,6 @@ class LogPile:
 		# Read JSON dictionary
 		with open(read_filename, 'r') as fh:
 			ad = json.load(fh)
-			
-		print(ad)
 		
 		# Populate logs
 		for led in ad['logs']:
@@ -375,18 +380,106 @@ class LogPile:
 		
 		return all_success
 	
+	def save_hdf(self, save_filename):
+		
+		ad = self.to_dict()
+		
+		message_list = []
+		detail_list = []
+		timestamp_list = []
+		level_list = []
+		
+		# Create HDF data types
+		for de in ad:
+			
+			message_list.append(de['message'])
+			detail_list.append(de['detail'])
+			timestamp_list.append(de['timestamp'])
+			level_list.append(de['level'])
+		
+		# Write file
+		with h5py.File(save_filename, 'w') as fh:
+			fh.create_group("logs")
+			fh['logs'].create_dataset('message', data=message_list)
+			fh['logs'].create_dataset('detail', data=detail_list)
+			fh['logs'].create_dataset('timestamp', data=timestamp_list)
+			fh['logs'].create_dataset('level', data=level_list)
+	
+	def load_hdf(self, read_filename:str):
+		
+		all_success = True
+		
+		# Load file contents
+		with h5py.File(read_filename, 'r') as fh:
+			message_list = fh['logs']['message'][()]
+			detail_list = fh['logs']['detail'][()]
+			timestamp_list = fh['logs']['timestamp'][()]
+			level_list = fh['logs']['level'][()]
+		
+		# Convert to dictionary
+		for nm,nd,nt,nl in zip(message_list, detail_list, timestamp_list, level_list):
+			
+			# Create dictionary
+			dd = {'message': nm.decode('utf-8'), 'detail':nd.decode('utf-8'), 'timestamp': nt.decode('utf-8'), 'level':nl.decode('utf-8')}
+			
+			# Create LogEntry
+			nl = LogEntry(message=nm, detail=nd)
+			if nl.init_dict(dd):
+				self.logs.append(nl)
+			else:
+				all_success = False
+		
+		return all_success
+			
+	
 	def save_txt(self):
 		pass
 	
 	def begin_autosave(self):
 		pass
 	
-	def read_json(self):
-		pass
-	
-	def save_hdf5(self, filename:str):
-		pass
-		# # Open hdf5 file
-		# with h5py.File(filename, 'w') as f:
+	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False):
+		'''
+		Shows logs matching the specified conditions
+		
+		Args:
+			min_level (int): Minimum logging level to display
+			max_level (int): Maximum logging level to display
+			max_number (int): Maximum number of logs to show
+			from_beginning (bool): Show logs starting from beginning.
+		
+		Returns:
+			None
+		'''
+		
+		# Check max number is zero or less
+		if max_number is not None and max_number < 1:
+			return
+		
+		# Get list order
+		if from_beginning:
+			log_list = reversed(self.logs)
+		else:
+			log_list = self.logs
+		
+		# Scan over logs
+		for lg in log_list:
 			
-		# 	dslog = f.create_dataset('log')
+			# Check log level
+			if lg.level < min_level or lg.level > max_level:
+				continue
+			
+			# Print log
+			print(f"{lg.str(self.str_format)}{Style.RESET_ALL}")
+			
+			# Run counter if specified
+			if max_number is not None:
+				
+				# Decrement
+				max_number -= 1
+				
+				# Check for end
+				if max_number < 1:
+					cq = self.str_format.default_color['quiet']
+					print(f"\t{cq}...{Style.RESET_ALL}")
+					break

@@ -1,0 +1,34 @@
+{
+    "logs": [
+        {
+            "message": "This is some >spicy< information.",
+            "detail": "lkasdhfjklghasdfbasdfljkhasklasdf",
+            "timestamp": "2024-06-02 11:56:40.185915",
+            "level": "INFO"
+        },
+        {
+            "message": "10001010>:31011<101",
+            "detail": "",
+            "timestamp": "2024-06-02 11:56:40.185915",
+            "level": "DEBUG"
+        },
+        {
+            "message": "Spooky scary",
+            "detail": "lbasdfpjklASDF asd jkhAS DJKL asd jklhgdf aslg",
+            "timestamp": "2024-06-02 11:56:40.185915",
+            "level": "WARNING"
+        },
+        {
+            "message": "This is an error!",
+            "detail": "",
+            "timestamp": "2024-06-02 11:56:40.185915",
+            "level": "ERROR"
+        },
+        {
+            "message": "Oh no I'm dead XX",
+            "detail": "asdfjklhasdfb jkasdfasdjkfasdkfjhasdjklg",
+            "timestamp": "2024-06-02 11:56:40.185915",
+            "level": "CRITICAL"
+        }
+    ]
+}
