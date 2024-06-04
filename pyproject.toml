@@ -20,3 +20,6 @@ classifiers = [
 [project.urls]
 Homepage = "https://github.com/Grant-Giesbrecht/pylogfile"
 Issues = "https://github.com/Grant-Giesbrecht/pylogfile/issues"
+
+[project.scripts]
+lumber = "scripts.lumberjack:main"
