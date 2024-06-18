@@ -12,8 +12,14 @@ import h5py
 #TODO: Log to string etc
 #TODO: Integrate with logger
 
-RECORD = -15		# (Special) Used for recording the status of an experiment for scientific integrity. Useful for record keeping, but shouldn't need to be viewed unless verifying details of an experiment.
-CORE = -25		# (Special) Used for reporting core scientific changes and results
+xDEBUG = -10
+xINFO = -20
+xWARNING = -30
+xERROR = -40
+xCRITICAL = -50
+
+RECORD = -25
+CORE = -30
 
 NOTSET = 0
 DEBUG = 10		# Used for debugging
@@ -39,6 +45,26 @@ class LogFormat:
 	})
 	detail_indent:str = "\t "
 
+def str_to_level(lvl:str) -> int:
+	
+	# Set level
+	if lvl == "DEBUG":
+		return DEBUG
+	elif lvl == "RECORD":
+		return RECORD
+	elif lvl == "INFO":
+		return INFO
+	elif lvl == "CORE":
+		return CORE
+	elif lvl == "WARNING":
+		return WARNING
+	elif lvl == "ERROR":
+		return ERROR
+	elif lvl == "CRITICAL":
+		return CRITICAL
+	else:
+		return False
+
 class LogEntry:
 	
 	default_format = LogFormat()
@@ -63,6 +89,8 @@ class LogEntry:
 		self.message = message
 		self.detail = detail
 	
+
+	
 	def init_dict(self, data_dict:dict) -> bool:
 		
 		# Extract data from dict
@@ -75,21 +103,8 @@ class LogEntry:
 			return False
 		
 		# Set level
-		if lvl == "DEBUG":
-			self.level = DEBUG
-		elif lvl == "RECORD":
-			self.level = RECORD
-		elif lvl == "INFO":
-			self.level = INFO
-		elif lvl == "CORE":
-			self.level = CORE
-		elif lvl == "WARNING":
-			self.level = WARNING
-		elif lvl == "ERROR":
-			self.level = ERROR
-		elif lvl == "CRITICAL":
-			self.level = CRITICAL
-		else:
+		self.level = str_to_level(lvl)
+		if self.level is None:
 			return False
 		
 		self.message = msg # Set message
@@ -457,7 +472,7 @@ class LogPile:
 			return
 		
 		# Get list order
-		if from_beginning:
+		if not from_beginning:
 			log_list = reversed(self.logs)
 		else:
 			log_list = self.logs
