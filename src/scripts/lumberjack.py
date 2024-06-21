@@ -7,28 +7,24 @@ from pylogfile import *
 import argparse
 from itertools import groupby, count, filterfalse
 
+#TODO: Reintroduce argparse
+#TODO: Replace first, last, all with SHOW and --first, --last, 
+#TODO: Search by keyword
+#TODO: Search by timestamp
+#TODO: Search by index
+#TODO: Option to print index of log with SHOW (to make sorting easier)
+
 ##================================================================
 # Read commandline Arguments
 
-# parser = argparse.ArgumentParser()
-# parser.add_argument('--last', help="Show last X number of logs", action='store_true')
-# parser.add_argument('--first', help="Show first X number of logs", action='store_true')
-# parser.add_argument('-g', '--gui', help="Use graphical interface", action='store_true')
-# parser.add_argument('-a', '--all', help="Print all logs", action='store_true')
-# parser.add_argument('-nc', '--nocli', help="Skip the CLI", action='store_true')
-# args = parser.parse_args()
-
-@dataclass
-class tempstuff:
-	gui = False
-	last = False
-	first = False
-	all = False
-	nocli = False
-	
-args = tempstuff()
-args.last = True
-
+parser = argparse.ArgumentParser()
+parser.add_argument('filename')
+parser.add_argument('--last', help="Show last X number of logs", action='store_true')
+parser.add_argument('--first', help="Show first X number of logs", action='store_true')
+parser.add_argument('-g', '--gui', help="Use graphical interface", action='store_true')
+parser.add_argument('-a', '--all', help="Print all logs", action='store_true')
+parser.add_argument('-nc', '--nocli', help="Skip the CLI", action='store_true')
+args = parser.parse_args()
 
 if args.gui:
 	print(f"{Fore.RED}GUI has not been implemented. Continuing with CLI.{Style.RESET_ALL}")
@@ -124,11 +120,6 @@ def main():
 	max_level = CRITICAL
 	head_len = 15
 	
-	# Print help if no arguments provided
-	if len(sys.argv) == 1:
-		show_help()
-		sys.exit()
-	
 	# Create logpile object
 	log = LogPile()
 	
@@ -137,7 +128,7 @@ def main():
 	fmt.show_detail = True
 	
 	# Get filename from arguments
-	filename = sys.argv[1]
+	filename = args.filename
 	
 	# Read file
 	if filename[-4:].upper() == ".HDF":
