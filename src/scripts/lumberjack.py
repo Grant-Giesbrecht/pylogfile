@@ -501,9 +501,10 @@ def main():
 			
 		elif cmd == "STATE":
 			print(f"{Fore.CYAN}Lumberjack-CLI State:{Style.RESET_ALL}")
-			print(f"    {Fore.YELLOW}MIN-LEVEL: {Style.RESET_ALL}{min_level}")
-			print(f"    {Fore.YELLOW}MAX-LEVEL: {Style.RESET_ALL}{max_level}")
-			print(f"    {Fore.YELLOW}NUM-PRINT: {Style.RESET_ALL}{head_len}")
+			print(f"    {Fore.YELLOW}Min. level: {Style.RESET_ALL}{settings.min_level}")
+			print(f"    {Fore.YELLOW}Max. level: {Style.RESET_ALL}{settings.max_level}")
+			print(f"    {Fore.YELLOW}Num. print: {Style.RESET_ALL}{settings.num_print}")
+			print(f"    {Fore.YELLOW}Print from beginning: {Style.RESET_ALL}{settings.from_beginning}")
 		elif cmd == "INFO":
 			
 			long_mode = False 
