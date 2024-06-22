@@ -46,6 +46,7 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 #TODO: Search by timestamp
 #TODO: Search by index
 #TODO: Option to print index of log with SHOW (to make sorting easier)
+#TODO: Automatically sort help --list keys (port to * as well)
 
 ##================================================================
 # Read commandline Arguments
@@ -63,6 +64,25 @@ if args.gui:
 	print(f"{Fore.RED}GUI has not been implemented. Continuing with CLI.{Style.RESET_ALL}")
 
 ##================================================================
+
+
+class LJSettings:
+	
+	def __init__(self, s=None):
+		self.from_beginning:bool = True
+		self.num_print:int = 15
+		self.min_level = DEBUG
+		self.max_level = CRITICAL
+		
+		if s is not None:
+			self.get_vals(s)
+	
+	def get_vals(self, s):
+		self.from_beginning = s.from_beginning
+		self.num_print = s.num_print
+		self.min_level = s.min_level
+		self.max_level = s.max_level
+	
 
 class StringIdx():
 	def __init__(self, val:str, idx:int, idx_end:int=-1):
@@ -149,9 +169,7 @@ def show_help():
 
 def main():
 	
-	min_level = DEBUG
-	max_level = CRITICAL
-	head_len = 15
+	settings = LJSettings()
 	
 	# Create logpile object
 	log = LogPile()
@@ -233,18 +251,85 @@ def main():
 			
 			# Assign min level
 			max_level = lvl_int
-		elif cmd == "ALL":
-			log.show_logs(min_level=min_level, max_level=max_level)
-		elif cmd == "FIRST":
-			head_len_local = head_len
-			if len(words) > 2 and (words[1].str == "-n" or words[1].str == "--num"):
-				try:
-					head_len_local = int(words[2].str)
-				except:
-					w2 = words[2]
-					print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2}'.{Style.RESET_ALL}")
+		elif cmd == "SHOW":
 			
-			log.show_logs(max_number=head_len_local, from_beginning=True, min_level=min_level, max_level=max_level)
+			# Initialize local copies of show parameters, for local overrides
+			local_settings = LJSettings(settings)
+			show_all = False
+			
+			# Check for flags
+			idx = 1
+			while idx < len(words):
+				if words[idx].str == "-n" or words[idx].str == "--num":
+					
+					# Verify argument is present
+					if idx+1 >= len(words):
+						print(f"{Fore.LIGHTRED_EX}Flag '--num' requires an argument (the number of logs to display).")
+						break
+					
+					# Try to interpret argument
+					try:
+						local_settings.num_print = int(words[idx+1].str)
+					except:
+						w2 = words[idx+1]
+						print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2}'.{Style.RESET_ALL}")
+						idx += 1
+						continue
+					
+					# Check if num_print is zero (inf), and reassign to None
+					if local_settings.num_print == 0:
+						local_settings.num_print = None
+					
+				elif words[idx].str == "-a" or words[idx].str == "--all":
+					show_all = True
+				elif words[idx].str == "-f" or words[idx].str == "--first":
+					local_settings.from_beginning = True
+				elif words[idx].str == "-l" or words[idx].str == "--last":
+					local_settings.from_beginning = False
+				elif words[idx].str == "-m" or words[idx].str == "--min":
+					
+					# Verify argument is present
+					if idx+1 >= len(words):
+						print(f"{Fore.LIGHTRED_EX}Flag '--min' requires an argument (the minimum log level to display).")
+						break
+					
+					# Get level int
+					lvl_str = words[idx].str.upper()
+					lvl_int = str_to_level(lvl_str)
+					if lvl_int is None:
+						print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
+						idx += 1
+						continue
+					
+					# Assign value
+					local_settings.min_level = lvl_int
+					
+				elif words[idx].str == "-x" or words[idx].str == "--max":
+					
+					# Verify argument is present
+					if idx+1 >= len(words):
+						print(f"{Fore.LIGHTRED_EX}Flag '--max' requires an argument (the maximum log level to display).")
+						break
+					
+					# Get level int
+					lvl_str = words[idx+1].str.upper()
+					lvl_int = str_to_level(lvl_str)
+					if lvl_int is None:
+						print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
+						idx += 1
+						continue
+					
+					# Assign value
+					local_settings.max_level = lvl_int
+				
+				idx += 1
+					
+				
+			# Show logs using local settings
+			if show_all:
+				log.show_logs()
+			else:
+				log.show_logs(max_number=local_settings.num_print, from_beginning=local_settings.from_beginning, min_level=local_settings.min_level, max_level=local_settings.max_level)
 		elif cmd == "LAST":
 			head_len_local = head_len
 			if len(words) > 2 and (words[1].str == "-n" or words[1].str == "--num"):

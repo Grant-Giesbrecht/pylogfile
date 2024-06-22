@@ -89,5 +89,61 @@
 		"flags": [],
 		"examples": [],
 		"see_also": []
+	},
+	"STATE":{
+		"description": "Displays the state of the CLI, such as the current log levels to display, and number of logs to print.",
+		"arguments": [],
+		"flags": [],
+		"examples": [],
+		"see_also": ["INFO"]
+	},
+	"INFO":{
+		"description": "Displays basic information about the log file, such as the covered time period, log levels used, etc.",
+		"arguments": [],
+		"flags": [{
+			"short": "-l",
+			"long": "--long",
+			"description": "Prints additional detail."
+		}],
+		"examples": [],
+		"see_also": ["STATE"]
+	},
+	"SHOW":{
+		"description": "Shows a selection of log entries.",
+		"arguments": [],
+		"flags": [
+			{
+				"short": "-n",
+				"long": "--num",
+				"description": "Specify the number of logs to print. Locally overrides the value from the standalone command `NUM-PRINT`. Set to zero for unlimited. Expects one integer argument."
+			},
+			{
+				"short": "-a",
+				"long": "--all",
+				"description": "Display all logs. Ignores logging level limits, count limits, or search terms to display all logs."
+			},
+			{
+				"short": "-f",
+				"long": "--first",
+				"description": "Display logs starting with the first logs recorded."
+			},
+			{
+				"short": "-l",
+				"long": "--last",
+				"description": "Display logs starting with the last logs recorded."
+			},
+			{
+				"short": "-m",
+				"long": "--min",
+				"description": "Specify the minimum log level to display. Locally overrides the value from the standalone command `MIN-LEVEL`. Expects on argument."
+			},
+			{
+				"short": "-x",
+				"long": "--max",
+				"description": "Specify the maximum log level to display. Locally overrides the value from the standalone command `MAX-LEVEL`. Expects one argument."
+			}
+		],
+		"examples": [],
+		"see_also": ["STATE"]
 	}
 }
