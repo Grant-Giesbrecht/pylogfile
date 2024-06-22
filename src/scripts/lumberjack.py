@@ -41,6 +41,9 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 
 		return s
 
+#TODO: Way to print detail
+#TODO: Make it so you can apply search strings to only details or only message or both
+#TODO: Modify keyword search to preserve strings so phrass can be searched
 #TODO: Search by keyword
 #TODO: Search by timestamp
 #TODO: Search by index
@@ -192,25 +195,28 @@ def main():
 	if args.all:
 		log.show_logs()
 	elif args.first:
-		log.show_logs(max_number=head_len, from_beginning=True, min_level=min_level, max_level=max_level)
+		log.show_logs(max_number=settings.num_print, from_beginning=True, min_level=settings.min_level, max_level=settings.max_level)
 	elif args.last:
-		log.show_logs(max_number=head_len, min_level=min_level, max_level=max_level)
+		log.show_logs(max_number=settings.num_print, min_level=settings.min_level, max_level=settings.max_level)
 	
 	# Run CLI
 	running = not args.nocli
 	while running:
 		
+		# Get user input
 		cmd_raw = input(f"{Fore.GREEN}LUMBERJACK > {Style.RESET_ALL}")
 		
+		# Break into words
 		words = parseIdx(cmd_raw, " \t")
 		
+		# Skip empty lines
 		if len(words) < 1:
 			continue
+		
+		# Get command string
 		cmd = words[0].str.upper()
 		
-		cmd_code = ensureWhitespace(cmd_raw, "[],")
-		words_code = parseIdx(cmd_code, " \t")
-		
+		# Process commands
 		if cmd == "EXIT":
 			running = False
 		elif cmd == "CLS" or cmd == "CLEAR":
@@ -255,6 +261,8 @@ def main():
 			# Initialize local copies of show parameters, for local overrides
 			local_settings = LJSettings(settings)
 			show_all = False
+			search_orders = SortConditions()
+			do_search = False
 			
 			# Check for flags
 			idx = 1
@@ -274,6 +282,7 @@ def main():
 						print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2}'.{Style.RESET_ALL}")
 						idx += 1
 						continue
+					idx += 1
 					
 					# Check if num_print is zero (inf), and reassign to None
 					if local_settings.num_print == 0:
@@ -299,6 +308,7 @@ def main():
 						print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 						idx += 1
 						continue
+					idx += 1
 					
 					# Assign value
 					local_settings.min_level = lvl_int
@@ -317,18 +327,47 @@ def main():
 						print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 						idx += 1
 						continue
+					idx += 1
 					
 					# Assign value
 					local_settings.max_level = lvl_int
+					
+				elif words[idx].str == "-c" or words[idx].str == "--contains":
+					
+					# Verify argument is present
+					if idx+1 >= len(words):
+						print(f"{Fore.LIGHTRED_EX}Flag '--contains' requires an argument (the string to search for).")
+						break
+					
+					# Get level int
+					search_orders.contains_or.append(words[idx+1].str)
+					idx += 1
+					do_search = True
+				
+				elif words[idx].str == "-cc" or words[idx].str == "--andcontains":
+					
+					# Verify argument is present
+					if idx+1 >= len(words):
+						print(f"{Fore.LIGHTRED_EX}Flag '--contains' requires an argument (the string to search for).")
+						break
+					
+					# Get level int
+					search_orders.contains_and.append(words[idx+1].str)
+					idx += 1
+					do_search = True
 				
 				idx += 1
-					
-				
+			
+			# If no searches were previded, set object to None
+			if not do_search:
+				search_orders = None
+			
 			# Show logs using local settings
 			if show_all:
-				log.show_logs()
+				log.show_logs(from_beginning=True)
 			else:
-				log.show_logs(max_number=local_settings.num_print, from_beginning=local_settings.from_beginning, min_level=local_settings.min_level, max_level=local_settings.max_level)
+				log.show_logs(max_number=local_settings.num_print, from_beginning=local_settings.from_beginning, min_level=local_settings.min_level, max_level=local_settings.max_level, sort_orders=search_orders)
+				
 		elif cmd == "NUM-PRINT":
 			
 			# Check number of arguments
@@ -378,10 +417,10 @@ def main():
 				continue
 			
 			# Check for number of arguments
-			if len(words_code) < 2:
+			if len(words) < 2:
 				hcmd = "HELP"
 			else:
-				hcmd = words_code[1].str.upper()
+				hcmd = words[1].str.upper()
 			
 			cmd_list = help_data.keys()
 			

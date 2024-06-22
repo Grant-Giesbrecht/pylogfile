@@ -28,6 +28,16 @@ WARNING = 30 	# Warning for software
 ERROR = 40		# Software error
 CRITICAL = 50	# Critical error
 
+class SortConditions:
+	
+	time_start = None
+	time_end = None
+	contains_and = []
+	contains_or = []
+	index_start = None
+	index_end = None
+	
+
 #TODO: Make the keys in color_overrides match the variables in LogEntry (currently undefined)
 @dataclass
 class LogFormat:
@@ -181,6 +191,42 @@ class LogEntry:
 			s = s + f"\n{str_fmt.detail_indent}{c_quiet}{self.detail}"
 		
 		return s
+	
+	def matches_sort(self, orders:SortConditions) -> bool:
+		''' Checks if the entry matches the conditions specified by the SortConditions 'orders'. Returns true if they match and false if they don't. NOTE: Does not check index, that is only valid in a LogPile context.
+		'''
+		# Check if time conditions are specified
+		if (orders.time_start is not None) and (orders.time_end is not None):
+			
+			# Check if conditions agree
+			if self.timestamp < orders.time_start or self.timestamp > orders.time_end:
+				return False
+		
+		# Check if contains_and is specified
+		if len(orders.contains_and) > 0:
+			
+			# Check if all are hits
+			for targ in orders.contains_and:
+				if (targ not in self.message) and (targ not in self.detail):
+					return False
+		
+		# Check if contains_or is specified
+		if len(orders.contains_or) > 0:
+			
+			found_or = False
+			
+			# Check if any are hits
+			for targ in orders.contains_or:
+				if (targ in self.message) or (targ in self.detail):
+					found_or = True
+					break
+			
+			# Return negative if none matched
+			if not found_or:
+				return False
+		
+		# All matched!
+		return True
 	
 def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 	""" Applys Pylogfile markdown
@@ -453,7 +499,7 @@ class LogPile:
 	def begin_autosave(self):
 		pass
 	
-	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True):
+	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, show_detail:bool=False):
 		'''
 		Shows logs matching the specified conditions
 		
@@ -472,8 +518,6 @@ class LogPile:
 		if max_number is not None and max_number < 1:
 			return
 		
-		
-		
 		# Get list order
 		if not from_beginning:
 			log_list = reversed(self.logs)
@@ -489,6 +533,20 @@ class LogPile:
 			# Check log level
 			if lg.level < min_level or lg.level > max_level:
 				continue
+			
+			# If sort orders are provided, perform check
+			if (sort_orders is not None):
+				
+				# If time and contents searches dont hit, skip entry
+				if (not lg.matches_sort(sort_orders)):
+					continue
+				
+				# Check if index filter is requested
+				if (sort_orders.index_start is not None) and (sort_orders.index_end is not None):
+					
+					# If entry doesn't hit, skip it
+					if (idx < sort_orders.index_start) or (idx > sort_orders.index_end):
+						continue
 			
 			# Print log
 			if show_index:
