@@ -23,3 +23,6 @@ Issues = "https://github.com/Grant-Giesbrecht/pylogfile/issues"
 
 [project.scripts]
 lumber = "scripts.lumberjack:main"
+
+[tool.setuptools.package-data]
+myModule = ["scripts.assets.lumperjack_help.json"]

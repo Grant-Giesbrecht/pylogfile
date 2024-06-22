@@ -7,7 +7,40 @@ from pylogfile import *
 import argparse
 from itertools import groupby, count, filterfalse
 
-#TODO: Reintroduce argparse
+try:
+	
+	# Requires Python >= 3.9
+	import importlib.resources
+	
+	mod_path = importlib.resources.files(__package__)
+	inp_file = (mod_path / 'assets' / 'lumberjack_help.json')
+	with inp_file.open("r") as f:  # or "rt" as text file with universal newlines
+		file_contents = f.read()
+	
+	help_data = json.loads(file_contents)
+except AttributeError:
+	help_data = {}
+	print(f"{Fore.LIGHTRED_EX}Upgrade to Python >= 3.9 for access to importlib and CLI help data.")
+
+
+def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
+
+		s = text
+
+		# Pad input if requested
+		if pad:
+			s = " " + s + " "
+
+		pad_back = False
+		while len(s) < width:
+			if pad_back:
+				s = s + bc
+			else:
+				s = bc + s
+			pad_back = not pad_back
+
+		return s
+
 #TODO: Replace first, last, all with SHOW and --first, --last, 
 #TODO: Search by keyword
 #TODO: Search by timestamp
@@ -161,8 +194,6 @@ def main():
 		cmd_code = ensureWhitespace(cmd_raw, "[],")
 		words_code = parseIdx(cmd_code, " \t")
 		
-		
-		
 		if cmd == "EXIT":
 			running = False
 		elif cmd == "CLS" or cmd == "CLEAR":
@@ -237,6 +268,124 @@ def main():
 			except Exception as e:
 				w2 = words[1]
 				print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2}' ({e}).{Style.RESET_ALL}")
+		elif cmd == "HELP":
+			
+			HELP_WIDTH = 80
+			TABC = "    "
+			
+			color1 = Fore.WHITE # Body text
+			color2 = Fore.LIGHTYELLOW_EX # Titles/headers
+			color3 = Fore.YELLOW # Type specifiers, etc
+			color4 = Fore.LIGHTBLACK_EX # brackets and accents
+			
+			hstr = ""
+			
+			list_commands = False
+			
+			# Check for flags
+			print_long = False
+			if len(words) > 1:
+				for tk in words:
+					if tk.str == "-l" or tk.str == "--list":
+						list_commands = True
+
+			
+			if list_commands:
+				
+				# title
+				hstr += color2 + "-"*HELP_WIDTH + Style.RESET_ALL + "\n"
+				hstr += color2 + barstr(f"ALL COMMANDS", HELP_WIDTH, "-", pad=True) + Style.RESET_ALL + "\n\n"
+				
+				for cmd in help_data.keys():
+					desc = help_data[cmd]['description']
+					hstr += f"{TABC}{Fore.CYAN}{cmd}{color1}: {desc}\n"
+				
+				print(hstr)
+				continue
+			
+			# Check for number of arguments
+			if len(words_code) < 2:
+				hcmd = "HELP"
+			else:
+				hcmd = words_code[1].str.upper()
+			
+			cmd_list = help_data.keys()
+			
+			if hcmd in cmd_list: # HCMD is a COMMAND name
+			
+				## Print help data:
+				try:
+					# title
+					hstr += color2 + "-"*HELP_WIDTH + Style.RESET_ALL + "\n"
+					hstr += color2 + barstr(f"{hcmd} Help", HELP_WIDTH, "-", pad=True) + Style.RESET_ALL + "\n\n"
+					
+					# Description
+					hstr += f"{color2}Description:\n"
+					hstr += f"{color1}{TABC}" + help_data[hcmd]['description']+Style.RESET_ALL + "\n"
+					
+					# Arguments
+					if len(help_data[hcmd]['arguments']) > 0:
+						hstr += f"{color2}\nArguments:\n"
+						for ar in help_data[hcmd]['arguments']:
+							
+							arg_name = ar['name']
+							if ar['type'] in ["num", "str", "list", "cell", "list[cell]"]:
+								type_name = ar['type']
+							else:
+								type_name = f"{Fore.RED}???"
+							
+							if ar['optional']:
+								hstr += TABC + f"{color4}( {color1}{arg_name} {color4}[{color3}{type_name}{color4}]) "
+							else:
+								hstr += TABC + f"{color4}< {color1}{arg_name} {color4}[{color3}{type_name}{color4}]> "
+							
+							hstr += color1 + ar['description'] + "\n"
+					
+					# Flags
+					if len(help_data[hcmd]['flags']) > 0:
+						hstr += f"{color2}\nFlags:\n"
+						for ar in help_data[hcmd]['flags']:
+							
+							if ar["short"] != "" and ar["long"] != "":
+								hstr += TABC + color1 + ar['short'] + f"{color4}," + color1 + ar["long"] + color4 + ": "
+							elif ar['short'] != "":
+								hstr += TABC + color1 + ar['short'] + color4 + ": "
+							else:
+								hstr += TABC + color1 + ar['long'] + color4 + ": "
+								
+							
+							hstr += color1 + ar['description'] + "\n"
+					
+					# Examples
+					if len(help_data[hcmd]['examples']) > 0:
+						hstr += f"{color2}\nExamples:\n"
+						for ex_no, ar in enumerate(help_data[hcmd]['examples']):
+							
+							hstr += f"{color1}{TABC}Ex {ex_no}:\n"
+							hstr += TABC + TABC + color4 + ">> " + color3 + ar['command'] + "\n"
+							hstr += TABC + TABC + color1 + "Desc: " + color1 + ar['description'] + "\n"
+						
+						hstr += "\n"
+					
+					
+					# See also
+					if len(help_data[hcmd]['see_also']) > 0:
+						hstr += f"{color2}\nSee Also:\n{TABC}{color1}"
+						add_comma = False
+						for ar in help_data[hcmd]['see_also']:
+							
+							if ar.upper() in cmd_list:
+								
+								if add_comma:
+									hstr += ", "
+								
+								hstr += ar
+								add_comma = True
+					
+					print(hstr)
+				except Exception as e:
+					print(f"Corrupt help data for selected entry '{hcmd}' ({e}).")
+			
 		elif cmd == "STATE":
 			print(f"{Fore.CYAN}Lumberjack-CLI State:{Style.RESET_ALL}")
 			print(f"    {Fore.YELLOW}MIN-LEVEL: {Style.RESET_ALL}{min_level}")

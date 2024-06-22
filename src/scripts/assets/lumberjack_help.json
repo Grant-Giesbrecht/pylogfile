@@ -1,0 +1,93 @@
+{
+	"DUMMY":{
+		"description": "Does nothing",
+		"arguments": [
+			{
+				"name": "nothing1",
+				"type": "num",
+				"description": "Does nothing",
+				"optional": false
+			},
+			{
+				"name": "nothing2",
+				"type": "list",
+				"description": "Also does nothing",
+				"optional": true
+			}
+		],
+		"flags": [
+			{
+				"short": "-p",
+				"long": "-pnothing",
+				"description": "Does nothing"
+			}
+		],
+		"examples": [
+			{
+				"command": "dummy command",
+				"description": "What the command does"
+			}
+		],
+		"see_also": ["DUMMY"]
+	},
+	"HELP":{
+		"description": "Starts the integrated help service.",
+		"arguments": [{
+			"name": "command",
+			"type": "str",
+			"description": "Command of which to display help.",
+			"optional": true
+		}],
+		"flags": [{
+			"short": "-l",
+			"long": "--list",
+			"description": "Displays a list of all commands."
+		}],
+		"examples": [],
+		"see_also": []
+	},
+	"EXIT":{
+		"description": "Exits the program.",
+		"arguments": [],
+		"flags": [],
+		"examples": [],
+		"see_also": []
+	},
+	"MIN-LEVEL":{
+		"description": "Sets the minimum logging level to display in calls to 'SHOW'. Default is `DEBUG`.",
+		"arguments": [],
+		"flags": [],
+		"examples": [{
+			"command": "MIN-LEVEL WARNING",
+			"description": "Sets the minimum logging level to display to `WARNING`."
+		}],
+		"see_also": ["MAX-LEVEL", "SHOW"]
+	},
+	"MAX-LEVEL":{
+		"description": "Sets the maximum logging level to display in calls to 'SHOW'. Default is `CRITICAL`.",
+		"arguments": [],
+		"flags": [],
+		"examples": [{
+			"command": "MAX-LEVEL INFO",
+			"description": "Sets the maximum logging level to display to `INFO`."
+		}],
+		"see_also": ["MIN-LEVEL", "SHOW"]
+	},
+	"NUM-PRINT":{
+		"description": "Sets the default number of log entries to display in calls to `SHOW`. Default is 15. Set to zero for no limit.",
+		"arguments": [],
+		"flags": [],
+		"examples": [{
+			"command": "NUM-PRINT 10",
+			"description": "Sets number of logs to display with the `SHOW` command to 10."
+		}],
+		"see_also": ["SHOW"]
+	},
+	"CLS":{
+		"description": "Clears the screen. Alias of 'CLEAR'",
+		"arguments": [],
+		"flags": [],
+		"examples": [],
+		"see_also": []
+	}
+}
