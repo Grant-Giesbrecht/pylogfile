@@ -330,16 +330,6 @@ def main():
 				log.show_logs()
 			else:
 				log.show_logs(max_number=local_settings.num_print, from_beginning=local_settings.from_beginning, min_level=local_settings.min_level, max_level=local_settings.max_level)
-		elif cmd == "LAST":
-			head_len_local = head_len
-			if len(words) > 2 and (words[1].str == "-n" or words[1].str == "--num"):
-				try:
-					head_len_local = int(words[2].str)
-				except:
-					w2 = words[2]
-					print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2}'.{Style.RESET_ALL}")
-			
-			log.show_logs(max_number=head_len_local, from_beginning=False, min_level=min_level, max_level=max_level)
 		elif cmd == "NUM-PRINT":
 			
 			# Check number of arguments
