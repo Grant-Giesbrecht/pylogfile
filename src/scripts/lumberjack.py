@@ -41,12 +41,11 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 
 		return s
 
-#TODO: Replace first, last, all with SHOW and --first, --last, 
 #TODO: Search by keyword
 #TODO: Search by timestamp
 #TODO: Search by index
-#TODO: Option to print index of log with SHOW (to make sorting easier)
 #TODO: Automatically sort help --list keys (port to * as well)
+#TODO: Options to turn On/Off: Elipses between incongruous logs, log index #s, color-print, option to pad index number so always same number of digits
 
 ##================================================================
 # Read commandline Arguments
@@ -294,7 +293,7 @@ def main():
 						break
 					
 					# Get level int
-					lvl_str = words[idx].str.upper()
+					lvl_str = words[idx+1].str.upper()
 					lvl_int = str_to_level(lvl_str)
 					if lvl_int is None:
 						print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")

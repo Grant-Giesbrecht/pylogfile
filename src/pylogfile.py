@@ -493,7 +493,7 @@ class LogPile:
 			# Print log
 			if show_index:
 				# idx_str = f"{Fore.LIGHTBLACK_EX}[{Fore.YELLOW}{int(idx)}{Fore.LIGHTBLACK_EX}] "
-				idx_str = f"{Fore.WHITE}[{Fore.LIGHTYELLOW_EX}{int(idx)}{Fore.WHITE}] "
+				idx_str = f"{Fore.WHITE}[{Fore.WHITE}{int(idx)}{Fore.WHITE}] "
 			print(f"{idx_str}{lg.str(self.str_format)}{Style.RESET_ALL}")
 			
 			# Run counter if specified
