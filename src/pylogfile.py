@@ -453,7 +453,7 @@ class LogPile:
 	def begin_autosave(self):
 		pass
 	
-	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False):
+	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True):
 		'''
 		Shows logs matching the specified conditions
 		
@@ -462,6 +462,7 @@ class LogPile:
 			max_level (int): Maximum logging level to display
 			max_number (int): Maximum number of logs to show
 			from_beginning (bool): Show logs starting from beginning.
+			show_index (bool): Show or hide the index of the log entry by each entry.
 		
 		Returns:
 			None
@@ -471,21 +472,29 @@ class LogPile:
 		if max_number is not None and max_number < 1:
 			return
 		
+		
+		
 		# Get list order
 		if not from_beginning:
 			log_list = reversed(self.logs)
+			idx_list = reversed(list(np.linspace(0, len(self.logs)-1, len(self.logs))))
 		else:
 			log_list = self.logs
+			idx_list = list(np.linspace(0, len(self.logs)-1, len(self.logs)))
 		
 		# Scan over logs
-		for lg in log_list:
+		idx_str = ""
+		for idx, lg in zip(idx_list, log_list):
 			
 			# Check log level
 			if lg.level < min_level or lg.level > max_level:
 				continue
 			
 			# Print log
-			print(f"{lg.str(self.str_format)}{Style.RESET_ALL}")
+			if show_index:
+				# idx_str = f"{Fore.LIGHTBLACK_EX}[{Fore.YELLOW}{int(idx)}{Fore.LIGHTBLACK_EX}] "
+				idx_str = f"{Fore.WHITE}[{Fore.LIGHTYELLOW_EX}{int(idx)}{Fore.WHITE}] "
+			print(f"{idx_str}{lg.str(self.str_format)}{Style.RESET_ALL}")
 			
 			# Run counter if specified
 			if max_number is not None:
