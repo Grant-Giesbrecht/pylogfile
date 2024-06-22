@@ -43,7 +43,12 @@
 			"long": "--list",
 			"description": "Displays a list of all commands."
 		}],
-		"examples": [],
+		"examples": [
+			{
+				"command": "help show",
+				"description": "Displays help information for command `SHOW`."
+			}
+		],
 		"see_also": []
 	},
 	"EXIT":{
@@ -141,9 +146,65 @@
 				"short": "-x",
 				"long": "--max",
 				"description": "Specify the maximum log level to display. Locally overrides the value from the standalone command `MAX-LEVEL`. Expects one argument."
+			},
+			{
+				"short": "-c",
+				"long": "--contains",
+				"description": "Filter for logs that contain a string. If multiple items are specified via multiple flags, any one match will count as a hit."
+			},
+			{
+				"short": "-cc",
+				"long": "--andcontains",
+				"description": "Filter for logs that contain a string. If multiple items are specified via multiple flags, all will need to match for it to be considered a hit."
+			},
+			{
+				"short": "-ta",
+				"long": "--after",
+				"description": "Time is after X"
+			},
+			{
+				"short": "-tb",
+				"long": "--before",
+				"description": "Time is before X"
+			},
+			{
+				"short": "-t",
+				"long": "--time",
+				"description": "Time occurred at X"
+			},
+			{
+				"short": "-tw",
+				"long": "--window",
+				"description": "Time window for matching --time."
+			},
+			{
+				"short": "-i",
+				"long": "--index",
+				"description": "Specify an index as an int, or range of indeces to display."
 			}
 		],
-		"examples": [],
+		"examples": [
+			{
+				"command":"show --last",
+				"description": "Shows N commands, starting with the last commands. N is set by either --num or the `NUM-PRINT` command."
+			},
+			{
+				"command":"show --all",
+				"description": "Shows all commands in the log file."
+			},
+			{
+				"command":"show --min INFO --max WARNING --num 20 --first",
+				"description": "Shows the first 20 commands with log levels between INFO and WARNING."
+			},
+			{
+				"command":"show -c spam -c eggs",
+				"description": "Shows N log entries with the strings spam or eggs contained in their message or descriptions. N is set by either --num or the `NUM-PRINT` command."
+			},
+			{
+				"command":"show --cc spam --cc eggs",
+				"description": "Same as previous example, however only log entries with both spam and eggs are shown."
+			}
+		],
 		"see_also": ["STATE"]
 	}
 }
