@@ -1,5 +1,5 @@
 <h1 align="center">
-<img src="docs/images/pylogfile_logo_banner.svg" width="300">
+<img src="https://github.com/Grant-Giesbrecht/pylogfile/docs/images/pylogfile_logo_banner.svg" width="300">
 </h1><br>
 
 Pylogfile provides a better method for implementing logging in your Python scripts.
@@ -44,7 +44,7 @@ log.save_json("example.log.json")
 
 With the corresponding output:
 
-<img src="docs/images/ex1_output.png" width="600">
+<img src="https://github.com/Grant-Giesbrecht/pylogfile/docs/images/ex1_output.png" width="600">
 
 ## Lumberjack
 
@@ -56,19 +56,19 @@ lumber example.log.hdf
 
 and the first few logs displayed with the `SHOW` command:
 
-<img src="docs/images/lumber_out1.png" width="600">
+<img src="https://github.com/Grant-Giesbrecht/pylogfile/docs/images/lumber_out1.png" width="600">
 
 Basic information about the log file can be displayed with the `INFO` command.
 
-<img src="docs/images/lumber_out2.png" width="320">
+<img src="https://github.com/Grant-Giesbrecht/pylogfile/docs/images/lumber_out2.png" width="320">
 
 Logs can also be sorted by applying flags to the `SHOW` command. Here the `--index` flag is used to search based on the index of the log entry, the `--contains` flag is used to search for the keyword or phrase 'RF' while specifying a max of 5 logs should be displayed using the `--num` flag, and the log level is filter by applying the `--min` and `--max` flags.
 
-<img src="docs/images/lumber_out3.png" width="600">
+<img src="https://github.com/Grant-Giesbrecht/pylogfile/docs/images/lumber_out3.png" width="600">
 
 Lumberjack has lots of other search functions, commands, and features. You can learn more about it from its integrated help menu which can list all available commands and provide detailed information on how to use them.
 
-<img src="docs/images/lumber_out4.png" width="600">
+<img src="https://github.com/Grant-Giesbrecht/pylogfile/docs/images/lumber_out4.png" width="600">
 
 ## Documentation
 
