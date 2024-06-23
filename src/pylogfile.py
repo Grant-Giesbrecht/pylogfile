@@ -54,6 +54,7 @@ class LogFormat:
 														CORE: {"label": Fore.CYAN}
 	})
 	detail_indent:str = "\t "
+	strip_newlines:bool = True
 
 def str_to_level(lvl:str) -> int:
 	
@@ -183,12 +184,18 @@ class LogEntry:
 			c_alt = ''
 			c_label = ''
 		
+		# If requested, remove all newlines
+		if str_fmt.strip_newlines:
+			message = self.message.replace("\n", "")
+			detail = self.detail.replace("\n", "")
+			
+		
 		# Create base string
-		s = f"{c_alt}[{c_label}{self.get_level_str()}{c_alt}]{c_main} {markdown(self.message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
+		s = f"{c_alt}[{c_label}{self.get_level_str()}{c_alt}]{c_main} {markdown(message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
 		
 		# Add detail if requested
-		if str_fmt.show_detail and len(self.detail) > 0:
-			s = s + f"\n{str_fmt.detail_indent}{c_quiet}{self.detail}"
+		if str_fmt.show_detail and len(detail) > 0:
+			s = s + f"\n{str_fmt.detail_indent}{c_quiet}{detail}"
 		
 		return s
 	
@@ -499,7 +506,7 @@ class LogPile:
 	def begin_autosave(self):
 		pass
 	
-	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, show_detail:bool=False):
+	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, str_fmt:LogFormat=None):
 		'''
 		Shows logs matching the specified conditions
 		
@@ -552,7 +559,11 @@ class LogPile:
 			if show_index:
 				# idx_str = f"{Fore.LIGHTBLACK_EX}[{Fore.YELLOW}{int(idx)}{Fore.LIGHTBLACK_EX}] "
 				idx_str = f"{Fore.WHITE}[{Fore.WHITE}{int(idx)}{Fore.WHITE}] "
-			print(f"{idx_str}{lg.str(self.str_format)}{Style.RESET_ALL}")
+			
+			if str_fmt is None:
+				print(f"{idx_str}{lg.str(self.str_format)}{Style.RESET_ALL}")
+			else:
+				print(f"{idx_str}{lg.str(str_fmt)}{Style.RESET_ALL}")
 			
 			# Run counter if specified
 			if max_number is not None:

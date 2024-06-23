@@ -6,6 +6,7 @@ from colorama import Fore, Style
 from pylogfile import *
 import argparse
 from itertools import groupby, count, filterfalse
+import dataclasses
 
 try:
 	
@@ -41,6 +42,8 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 
 		return s
 
+#TODO: Change where elipses print for --last
+
 #TODO: Way to print detail
 #TODO: Make it so you can apply search strings to only details or only message or both
 #TODO: Modify keyword search to preserve strings so phrass can be searched
@@ -75,6 +78,7 @@ class LJSettings:
 		self.num_print:int = 15
 		self.min_level = DEBUG
 		self.max_level = CRITICAL
+		self.show_detail = False
 		
 		if s is not None:
 			self.get_vals(s)
@@ -85,6 +89,18 @@ class LJSettings:
 		self.min_level = s.min_level
 		self.max_level = s.max_level
 	
+def str_to_bool(val:str, strict:bool=True):
+	''' Converts the string 0/1 or ON/OFF or TRUE/FALSE to a boolean '''
+	
+	if ('1' in val) or ('ON' in val.upper()) or ('TRUE' in val.upper()):
+		return True
+	elif ('0' in val) or ('OFF' in val.upper()) or ('FALSE' in val.upper()):
+		return False
+	else:
+		if strict:
+			return None
+		else:
+			return False
 
 class StringIdx():
 	def __init__(self, val:str, idx:int, idx_end:int=-1):
@@ -260,6 +276,7 @@ def main():
 			
 			# Initialize local copies of show parameters, for local overrides
 			local_settings = LJSettings(settings)
+			local_fmt = dataclasses.replace(log.str_format)
 			show_all = False
 			search_orders = SortConditions()
 			do_search = False
@@ -279,7 +296,7 @@ def main():
 						local_settings.num_print = int(words[idx+1].str)
 					except:
 						w2 = words[idx+1]
-						print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2}'.{Style.RESET_ALL}")
+						print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2.str}'.{Style.RESET_ALL}")
 						idx += 1
 						continue
 					idx += 1
@@ -294,6 +311,25 @@ def main():
 					local_settings.from_beginning = True
 				elif words[idx].str == "-l" or words[idx].str == "--last":
 					local_settings.from_beginning = False
+				elif words[idx].str == "-d" or words[idx].str == "--detail":
+					
+					# Verify argument is present
+					if idx+1 >= len(words):
+						
+						# If no argument is present, default to turning detail ON
+						local_fmt.show_detail = True
+					
+					# Get level int
+					d_val = str_to_bool(words[idx+1].str)
+					if d_val is None:
+						s = words[idx+1].str
+						print(f"{Fore.LIGHTRED_EX}Unrecognized boolean spcifier '{s}'.{Style.RESET_ALL}")
+						idx += 1
+						continue
+					idx += 1
+					
+					# Assign value
+					local_fmt.show_detail = d_val
 				elif words[idx].str == "-m" or words[idx].str == "--min":
 					
 					# Verify argument is present
@@ -364,9 +400,9 @@ def main():
 			
 			# Show logs using local settings
 			if show_all:
-				log.show_logs(from_beginning=True)
+				log.show_logs(from_beginning=True, str_fmt=local_fmt)
 			else:
-				log.show_logs(max_number=local_settings.num_print, from_beginning=local_settings.from_beginning, min_level=local_settings.min_level, max_level=local_settings.max_level, sort_orders=search_orders)
+				log.show_logs(max_number=local_settings.num_print, from_beginning=local_settings.from_beginning, min_level=local_settings.min_level, max_level=local_settings.max_level, sort_orders=search_orders, str_fmt=local_fmt)
 				
 		elif cmd == "NUM-PRINT":
 			
@@ -380,7 +416,7 @@ def main():
 				head_len = int(words[1].str)
 			except Exception as e:
 				w2 = words[1]
-				print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2}' ({e}).{Style.RESET_ALL}")
+				print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2.str}' ({e}).{Style.RESET_ALL}")
 		elif cmd == "HELP":
 			
 			HELP_WIDTH = 80

@@ -181,6 +181,11 @@
 				"short": "-i",
 				"long": "--index",
 				"description": "Specify an index as an int, or range of indeces to display."
+			},
+			{
+				"short": "-d",
+				"long": "--detail",
+				"description": "Turns detail on or off. Expects one boolean argument (0/1, True/False, ON/OFF). If no arugment is provided, turns detail on."
 			}
 		],
 		"examples": [
