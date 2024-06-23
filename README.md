@@ -1,6 +1,4 @@
 # pylogfile
 Universal log files for Python
 
-![](https://github.com/Grant-Giesbrecht/pylogfile/blob/main/docs/pylogfile.png | width=100)
-
-![Alt text](docs/pylogfile.png?raw=true "Logo")
+![Alt text](docs/pylogfile_small.png?raw=true "Logo")
