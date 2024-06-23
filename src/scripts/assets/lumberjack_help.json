@@ -180,7 +180,7 @@
 			{
 				"short": "-i",
 				"long": "--index",
-				"description": "Specify an index as an int, or range of indeces to display."
+				"description": "Specify an index as an int, or range of indeces to display. This will override the number of entries to print specified by --num or the command `NUM-PRINT`."
 			},
 			{
 				"short": "-d",
@@ -208,6 +208,10 @@
 			{
 				"command":"show --cc spam --cc eggs",
 				"description": "Same as previous example, however only log entries with both spam and eggs are shown."
+			},
+			{
+				"command":"show --index 10:40",
+				"description": "Shows log entries with indecies 10 through 40."
 			}
 		],
 		"see_also": ["STATE"]

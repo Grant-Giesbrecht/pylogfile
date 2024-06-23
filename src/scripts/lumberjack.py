@@ -44,10 +44,8 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 
 #TODO: Change where elipses print for --last
 
-#TODO: Way to print detail
 #TODO: Make it so you can apply search strings to only details or only message or both
 #TODO: Modify keyword search to preserve strings so phrass can be searched
-#TODO: Search by keyword
 #TODO: Search by timestamp
 #TODO: Search by index
 #TODO: Automatically sort help --list keys (port to * as well)
@@ -330,6 +328,42 @@ def main():
 					
 					# Assign value
 					local_fmt.show_detail = d_val
+				elif words[idx].str == "-i" or words[idx].str == "--index":
+					
+					# Verify argument is present
+					if idx+1 >= len(words):
+						print(f"{Fore.LIGHTRED_EX}Flag '--index' requires an argument (The index or index range 'START:END' to display).")
+						break
+					
+					# Interpret argument
+					idx_colon = words[idx+1].str.find(':') # Look for colon
+					if idx_colon == -1: # No colon present
+						try:
+							search_orders.index_start = int(words[idx+1].str)
+							search_orders.index_end = search_orders.index_start
+						except Exception as e:
+							s = words[idx+1].str
+							print(f"{Fore.LIGHTRED_EX}Unrecognized index spcifier '{s}'. ({e}){Style.RESET_ALL}")
+							idx += 1
+							search_orders.index_start = None
+							search_orders.index_end = None
+							continue
+					else: # Colon was present - interpret range
+						try:
+							search_orders.index_start = int(words[idx+1].str[:idx_colon])
+							search_orders.index_end = int(words[idx+1].str[idx_colon+1:])
+							local_settings.num_print = None
+						except Exception as e:
+							s1 = words[idx+1].str[:idx_colon]
+							s2 = words[idx+1].str[idx_colon+1:]
+							print(f"{Fore.LIGHTRED_EX}Failed to interpret index range '{s1}' to '{s2}'. ({e}){Style.RESET_ALL}")
+							idx += 1
+							search_orders.index_start = None
+							search_orders.index_end = None
+							continue
+					idx += 1
+					do_search = True
+					
 				elif words[idx].str == "-m" or words[idx].str == "--min":
 					
 					# Verify argument is present
