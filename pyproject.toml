@@ -16,6 +16,11 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
+dependencies = [
+	'numpy >= 2.0.0',
+	'h5py >= 3.11.0',
+	'colorama >= 0.4.6'
+]
 
 [project.urls]
 Homepage = "https://github.com/Grant-Giesbrecht/pylogfile"
@@ -23,12 +28,6 @@ Issues = "https://github.com/Grant-Giesbrecht/pylogfile/issues"
 
 [project.scripts]
 lumber = "scripts.lumberjack:main"
-
-dependencies = [
-	'numpy >= 2.0.0',
-	'h5py >= 3.11.0',
-	'colorama >= 0.4.6'
-]
 
 [tool.setuptools.package-data]
 myModule = ["scripts.assets.lumperjack_help.json"]
