@@ -3,25 +3,29 @@
 import os
 import sys
 from colorama import Fore, Style
-from pylogfile import *
+from pylogfile.base import *
 import argparse
 from itertools import groupby, count, filterfalse
 import dataclasses
+import json
 
 try:
 	
 	# Requires Python >= 3.9
 	import importlib.resources
-	
-	mod_path = importlib.resources.files(__package__)
-	inp_file = (mod_path / 'assets' / 'lumberjack_help.json')
+	mod_path = importlib.resources.files("pylogfile")
+	inp_file = (mod_path / 'scripts' / 'assets' / 'lumberjack_help.json')
 	with inp_file.open("r") as f:  # or "rt" as text file with universal newlines
 		file_contents = f.read()
 	
 	help_data = json.loads(file_contents)
-except AttributeError:
+except AttributeError as e:
 	help_data = {}
-	print(f"{Fore.LIGHTRED_EX}Upgrade to Python >= 3.9 for access to importlib and CLI help data.")
+	print(f"{Fore.LIGHTRED_EX}Upgrade to Python >= 3.9 for access to importlib and CLI help data. ({e})")
+except Exception as e:
+	help_data = {}
+	print(__name__)
+	print(f"{Fore.LIGHTRED_EX}An error occured. ({e}){Style.RESET_ALL}")
 
 
 def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):

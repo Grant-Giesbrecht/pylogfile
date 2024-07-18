@@ -1,4 +1,4 @@
-from pylogfile import *
+from pylogfile.base import *
 
 fmt = LogFormat()
 fmt.show_detail = True
