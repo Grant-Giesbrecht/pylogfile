@@ -3,7 +3,7 @@
 import os
 import sys
 from colorama import Fore, Style
-from pylogfile import *
+from pylogfile.base import *
 import argparse
 from itertools import groupby, count, filterfalse
 import dataclasses
