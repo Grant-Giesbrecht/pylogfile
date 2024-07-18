@@ -32,7 +32,7 @@ pip install pylogfile
 In this example, we create a simple program that sends two log messages and saves them to disk. Here we show how to save to both binary and plain text formats. The [HDF](https://www.hdfgroup.org/) file format is binary, allowing logs to be saved faster and while using less space on disk. We also show how to save to a JSON file, for those who prefer the simplicity of plain text files.
 
 ```python
-from pylogfile import *
+from pylogfile.base import *
 
 log = LogPile()
 log.info("Something happened. Emphasize >this<.")
