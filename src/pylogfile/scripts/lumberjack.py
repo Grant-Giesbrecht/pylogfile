@@ -13,10 +13,7 @@ try:
 	
 	# Requires Python >= 3.9
 	import importlib.resources
-	
-	mod_path = importlib.resources.files(__package__)
-	# mod_path = importlib.resources.files("pylogfile")
-	# mod_path = importlib.resources.files(pylogfile)
+	mod_path = importlib.resources.files("pylogfile")
 	inp_file = (mod_path / 'scripts' / 'assets' / 'lumberjack_help.json')
 	with inp_file.open("r") as f:  # or "rt" as text file with universal newlines
 		file_contents = f.read()
@@ -28,7 +25,7 @@ except AttributeError as e:
 except Exception as e:
 	help_data = {}
 	print(__name__)
-	print(f"{Fore.LIGHTRED_EX}An error occured. ({e})")
+	print(f"{Fore.LIGHTRED_EX}An error occured. ({e}){Style.RESET_ALL}")
 
 
 def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
