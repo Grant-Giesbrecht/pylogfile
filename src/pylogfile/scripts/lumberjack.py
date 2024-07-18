@@ -7,17 +7,17 @@ from pylogfile import *
 import argparse
 from itertools import groupby, count, filterfalse
 import dataclasses
-import pylogfile
+import json
 
 try:
 	
 	# Requires Python >= 3.9
 	import importlib.resources
 	
-	# mod_path = importlib.resources.files(__package__)
-	mod_path = importlib.resources.files("pylogfile")
+	mod_path = importlib.resources.files(__package__)
+	# mod_path = importlib.resources.files("pylogfile")
 	# mod_path = importlib.resources.files(pylogfile)
-	inp_file = (mod_path / 'assets' / 'lumberjack_help.json')
+	inp_file = (mod_path / 'scripts' / 'assets' / 'lumberjack_help.json')
 	with inp_file.open("r") as f:  # or "rt" as text file with universal newlines
 		file_contents = f.read()
 	
