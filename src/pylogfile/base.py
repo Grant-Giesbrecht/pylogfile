@@ -2,9 +2,9 @@ import datetime
 import json
 from dataclasses import dataclass, field
 from colorama import Fore, Style, Back
-import re
 import numpy as np
 import h5py
+import threading
 
 #TODO: Save only certain log levels
 #TODO: Autosave
@@ -352,6 +352,7 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 		
 
 class LogPile:
+	''' Organizes a collection of LogEntries and creates new ones. All functions are thread safe.'''
 	
 	JSON = "format-json"
 	TXT = "format-txt"
@@ -375,54 +376,66 @@ class LogPile:
 		self.str_format = str_fmt
 		
 		self.logs = []
+		
+		# mutexes
+		self.log_mutex = threading.Lock()
+		self.run_mutex = threading.Lock()
 	
 	def debug(self, message:str, detail:str=""):
-		''' Logs data at DEBUG level. '''
+		''' Logs data at DEBUG level. Thread safe.'''
 		
 		self.add_log(DEBUG, message, detail=detail)
 	
 	def info(self, message:str, detail:str=""):
-		''' Logs data at INFO level. '''
+		''' Logs data at INFO level. Thread safe.'''
 		
 		self.add_log(INFO, message, detail=detail)
 	
 	def warning(self, message:str, detail:str=""):
-		''' Logs data at WARNING level. '''
+		''' Logs data at WARNING level. Thread safe.'''
 		
 		self.add_log(WARNING, message, detail=detail)
 	
 	def error(self, message:str, detail:str=""):
-		''' Logs data at ERROR level. '''
+		''' Logs data at ERROR level. Thread safe.'''
 		
 		self.add_log(ERROR, message, detail=detail)
 
 	def critical(self, message:str, detail:str=""):
-		''' Logs data at CRITICAL level. '''
+		''' Logs data at CRITICAL level. Thread safe.'''
 		
 		self.add_log(CRITICAL, message, detail=detail)
 	
 	def add_log(self, level:int, message:str, detail:str=""):
+		''' Adds a log. Thread safe.'''
 		
 		# Create new log object
 		nl = LogEntry(level, message, detail=detail)
 		
 		# Add to list
-		self.logs.append(nl)
+		with  self.log_mutex:
+			self.logs.append(nl)
 		
 		# Process new log with any auto-running features
-		self.run_new_log(nl)
+		with self.run_mutex:
+			self.run_new_log(nl)
 	
 	def run_new_log(self, nl:LogEntry):
+		'''Runs a new log (often this means print to stdout). Thread safe.'''
 		
-		# Print to terminal
-		if self.terminal_output_enable:
-			print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
+		with self.run_mutex:
+			# Print to terminal
+			if self.terminal_output_enable:
+				print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
 	
 	def to_dict(self):
-		return [x.get_dict() for x in self.logs]
+		''' Returns a dictionary representing the logs in the LogPile. Thread safe. '''
+		
+		with self.log_mutex:
+			return [x.get_dict() for x in self.logs]
 	
 	def save_json(self, save_filename:str):
-		''' Saves all log data to a JSON file '''
+		''' Saves all log data to a JSON file. Thread safe. '''
 		
 		ad = self.to_dict()
 		
@@ -430,26 +443,32 @@ class LogPile:
 		with open(save_filename, 'w') as fh:
 			json.dump({"logs":ad}, fh, indent=4)
 	
-	def load_json(self, read_filename:str):
-		
+	def load_json(self, read_filename:str, clear_previous:bool=True):
+		''' Reads logs from a JSON file. Thread safe. '''
 		all_success = True
 		
 		# Read JSON dictionary
 		with open(read_filename, 'r') as fh:
 			ad = json.load(fh)
 		
-		# Populate logs
-		for led in ad['logs']:
-			nl = LogEntry()
-			if nl.init_dict(led):
-				self.logs.append(nl)
-			else:
-				all_success = False
+		with self.log_mutex:
+			
+			# Clear old logs
+			if clear_previous:
+				self.logs = []
+			
+			# Populate logs
+			for led in ad['logs']:
+				nl = LogEntry()
+				if nl.init_dict(led):
+					self.logs.append(nl)
+				else:
+					all_success = False
 		
 		return all_success
 	
 	def save_hdf(self, save_filename):
-		
+		''' Saves all logs to an HDF5 file. Thread safe.'''
 		ad = self.to_dict()
 		
 		message_list = []
@@ -473,7 +492,8 @@ class LogPile:
 			fh['logs'].create_dataset('timestamp', data=timestamp_list)
 			fh['logs'].create_dataset('level', data=level_list)
 	
-	def load_hdf(self, read_filename:str):
+	def load_hdf(self, read_filename:str, clear_previous:bool=True):
+		''' Reads logs from an HDF5 file. Thread safe. '''
 		
 		all_success = True
 		
@@ -484,18 +504,24 @@ class LogPile:
 			timestamp_list = fh['logs']['timestamp'][()]
 			level_list = fh['logs']['level'][()]
 		
-		# Convert to dictionary
-		for nm,nd,nt,nl in zip(message_list, detail_list, timestamp_list, level_list):
+		with self.log_mutex:
 			
-			# Create dictionary
-			dd = {'message': nm.decode('utf-8'), 'detail':nd.decode('utf-8'), 'timestamp': nt.decode('utf-8'), 'level':nl.decode('utf-8')}
+			# Clear old logs
+			if clear_previous:
+				self.logs = []
 			
-			# Create LogEntry
-			nl = LogEntry(message=nm, detail=nd)
-			if nl.init_dict(dd):
-				self.logs.append(nl)
-			else:
-				all_success = False
+			# Convert to dictionary
+			for nm,nd,nt,nl in zip(message_list, detail_list, timestamp_list, level_list):
+				
+				# Create dictionary
+				dd = {'message': nm.decode('utf-8'), 'detail':nd.decode('utf-8'), 'timestamp': nt.decode('utf-8'), 'level':nl.decode('utf-8')}
+				
+				# Create LogEntry
+				nl = LogEntry(message=nm, detail=nd)
+				if nl.init_dict(dd):
+					self.logs.append(nl)
+				else:
+					all_success = False
 		
 		return all_success
 			
@@ -508,7 +534,7 @@ class LogPile:
 	
 	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, str_fmt:LogFormat=None):
 		'''
-		Shows logs matching the specified conditions
+		Shows logs matching the specified conditions. Thread safe. 
 		
 		Args:
 			min_level (int): Minimum logging level to display
@@ -525,54 +551,56 @@ class LogPile:
 		if max_number is not None and max_number < 1:
 			return
 		
-		# Get list order
-		if not from_beginning:
-			log_list = reversed(self.logs)
-			idx_list = reversed(list(np.linspace(0, len(self.logs)-1, len(self.logs))))
-		else:
-			log_list = self.logs
-			idx_list = list(np.linspace(0, len(self.logs)-1, len(self.logs)))
+		with self.log_mutex:
 		
-		# Scan over logs
-		idx_str = ""
-		for idx, lg in zip(idx_list, log_list):
+			# Get list order
+			if not from_beginning:
+				log_list = reversed(self.logs)
+				idx_list = reversed(list(np.linspace(0, len(self.logs)-1, len(self.logs))))
+			else:
+				log_list = self.logs
+				idx_list = list(np.linspace(0, len(self.logs)-1, len(self.logs)))
 			
-			# Check log level
-			if lg.level < min_level or lg.level > max_level:
-				continue
-			
-			# If sort orders are provided, perform check
-			if (sort_orders is not None):
+			# Scan over logs
+			idx_str = ""
+			for idx, lg in zip(idx_list, log_list):
 				
-				# If time and contents searches dont hit, skip entry
-				if (not lg.matches_sort(sort_orders)):
+				# Check log level
+				if lg.level < min_level or lg.level > max_level:
 					continue
 				
-				# Check if index filter is requested
-				if (sort_orders.index_start is not None) and (sort_orders.index_end is not None):
+				# If sort orders are provided, perform check
+				if (sort_orders is not None):
 					
-					# If entry doesn't hit, skip it
-					if (idx < sort_orders.index_start) or (idx > sort_orders.index_end):
+					# If time and contents searches dont hit, skip entry
+					if (not lg.matches_sort(sort_orders)):
 						continue
-			
-			# Print log
-			if show_index:
-				# idx_str = f"{Fore.LIGHTBLACK_EX}[{Fore.YELLOW}{int(idx)}{Fore.LIGHTBLACK_EX}] "
-				idx_str = f"{Fore.WHITE}[{Fore.WHITE}{int(idx)}{Fore.WHITE}] "
-			
-			if str_fmt is None:
-				print(f"{idx_str}{lg.str(self.str_format)}{Style.RESET_ALL}")
-			else:
-				print(f"{idx_str}{lg.str(str_fmt)}{Style.RESET_ALL}")
-			
-			# Run counter if specified
-			if max_number is not None:
+					
+					# Check if index filter is requested
+					if (sort_orders.index_start is not None) and (sort_orders.index_end is not None):
+						
+						# If entry doesn't hit, skip it
+						if (idx < sort_orders.index_start) or (idx > sort_orders.index_end):
+							continue
 				
-				# Decrement
-				max_number -= 1
+				# Print log
+				if show_index:
+					# idx_str = f"{Fore.LIGHTBLACK_EX}[{Fore.YELLOW}{int(idx)}{Fore.LIGHTBLACK_EX}] "
+					idx_str = f"{Fore.WHITE}[{Fore.WHITE}{int(idx)}{Fore.WHITE}] "
 				
-				# Check for end
-				if max_number < 1:
-					cq = self.str_format.default_color['quiet']
-					print(f"\t{cq}...{Style.RESET_ALL}")
-					break
+				if str_fmt is None:
+					print(f"{idx_str}{lg.str(self.str_format)}{Style.RESET_ALL}")
+				else:
+					print(f"{idx_str}{lg.str(str_fmt)}{Style.RESET_ALL}")
+				
+				# Run counter if specified
+				if max_number is not None:
+					
+					# Decrement
+					max_number -= 1
+					
+					# Check for end
+					if max_number < 1:
+						cq = self.str_format.default_color['quiet']
+						print(f"\t{cq}...{Style.RESET_ALL}")
+						break
