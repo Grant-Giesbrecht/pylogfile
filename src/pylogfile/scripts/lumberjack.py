@@ -320,18 +320,19 @@ def main():
 						
 						# If no argument is present, default to turning detail ON
 						local_fmt.show_detail = True
-					
-					# Get level int
-					d_val = str_to_bool(words[idx+1].str)
-					if d_val is None:
-						s = words[idx+1].str
-						print(f"{Fore.LIGHTRED_EX}Unrecognized boolean spcifier '{s}'.{Style.RESET_ALL}")
+					else:
+						
+						# Get level int
+						d_val = str_to_bool(words[idx+1].str)
+						if d_val is None:
+							s = words[idx+1].str
+							print(f"{Fore.LIGHTRED_EX}Unrecognized boolean spcifier '{s}'.{Style.RESET_ALL}")
+							idx += 1
+							continue
 						idx += 1
-						continue
-					idx += 1
 					
-					# Assign value
-					local_fmt.show_detail = d_val
+						# Assign value
+						local_fmt.show_detail = d_val
 				elif words[idx].str == "-i" or words[idx].str == "--index":
 					
 					# Verify argument is present
