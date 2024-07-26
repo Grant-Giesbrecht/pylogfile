@@ -364,7 +364,6 @@ class LogPile:
 			str_fmt = LogFormat()
 		
 		self.terminal_output_enable = True
-		self.terminal_output_details = False
 		self.terminal_level = INFO
 		
 		self.autosave_enable = autosave
