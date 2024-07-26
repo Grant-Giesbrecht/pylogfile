@@ -412,7 +412,7 @@ class LogPile:
 		nl = LogEntry(level, message, detail=detail)
 		
 		# Add to list
-		with  self.log_mutex:
+		with self.log_mutex:
 			self.logs.append(nl)
 		
 		# Process new log with any auto-running features
@@ -422,10 +422,9 @@ class LogPile:
 	def run_new_log(self, nl:LogEntry):
 		'''Runs a new log (often this means print to stdout). Thread safe.'''
 		
-		with self.run_mutex:
-			# Print to terminal
-			if self.terminal_output_enable:
-				print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
+		# Print to terminal
+		if self.terminal_output_enable:
+			print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
 	
 	def to_dict(self):
 		''' Returns a dictionary representing the logs in the LogPile. Thread safe. '''
