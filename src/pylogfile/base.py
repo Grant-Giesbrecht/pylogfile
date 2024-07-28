@@ -384,6 +384,10 @@ class LogPile:
 		self.log_mutex = threading.Lock()
 		self.run_mutex = threading.Lock()
 	
+	def set_terminal_level(self, level_str:str):
+		''' Sets the terminal display level from a level name string. '''
+		self.terminal_level = str_to_level(level_str)
+	
 	def lowdebug(self, message:str, detail:str=""):
 		''' Logs data at LOWDEBUG level. Thread safe.'''
 		
@@ -433,7 +437,8 @@ class LogPile:
 		
 		# Print to terminal
 		if self.terminal_output_enable:
-			print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
+			if nl.level >= self.terminal_level:
+				print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
 	
 	def to_dict(self):
 		''' Returns a dictionary representing the logs in the LogPile. Thread safe. '''
