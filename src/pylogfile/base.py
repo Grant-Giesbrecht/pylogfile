@@ -22,6 +22,7 @@ RECORD = -25
 CORE = -30
 
 NOTSET = 0
+LOWDEBUG = 5	# For when you're having a really bad day
 DEBUG = 10		# Used for debugging
 INFO = 20		# Used for reporting basic high-level program functioning (that does not involve an error)
 WARNING = 30 	# Warning for software
@@ -45,7 +46,8 @@ class LogFormat:
 	show_detail:bool = False
 	use_color:bool = True
 	default_color:dict = field(default_factory=lambda: {"main": Fore.WHITE+Back.RESET, "bold": Fore.LIGHTBLUE_EX, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN})
-	color_overrides:dict = field(default_factory=lambda: {DEBUG: {"label": Fore.LIGHTBLACK_EX},
+	color_overrides:dict = field(default_factory=lambda: { LOWDEBUG: {"label": Fore.WHITE},
+														DEBUG: {"label": Fore.LIGHTBLACK_EX},
 														INFO: {},
 														WARNING: {"label": Fore.YELLOW},
 														ERROR: {"label": Fore.LIGHTRED_EX},
@@ -59,7 +61,9 @@ class LogFormat:
 def str_to_level(lvl:str) -> int:
 	
 	# Set level
-	if lvl == "DEBUG":
+	if lvl == "LOWDEBUG":
+		return LOWDEBUG
+	elif lvl == "DEBUG":
 		return DEBUG
 	elif lvl == "RECORD":
 		return RECORD
@@ -91,7 +95,7 @@ class LogEntry:
 			message = ""
 		
 		# Set level
-		if level not in [DEBUG, INFO, WARNING, ERROR, CRITICAL]:
+		if level not in [LOWDEBUG, DEBUG, INFO, WARNING, ERROR, CRITICAL]:
 			self.level = INFO
 		else:
 			self.level = level
@@ -379,6 +383,11 @@ class LogPile:
 		# mutexes
 		self.log_mutex = threading.Lock()
 		self.run_mutex = threading.Lock()
+	
+	def lowdebug(self, message:str, detail:str=""):
+		''' Logs data at LOWDEBUG level. Thread safe.'''
+		
+		self.add_log(LOWDEBUG, message, detail=detail)
 	
 	def debug(self, message:str, detail:str=""):
 		''' Logs data at DEBUG level. Thread safe.'''

@@ -598,9 +598,11 @@ def main():
 			print(f"    {Fore.YELLOW}number of Logs: {Style.RESET_ALL}{len(log.logs)}")
 			if long_mode:
 				# Count logs at each level
-				ndebug, ninfo, nwarning, nerror, ncritical, nother = 0, 0, 0, 0, 0, 0
+				nlowdebug, ndebug, ninfo, nwarning, nerror, ncritical, nother = 0, 0, 0, 0, 0, 0, 0
 				for l in log.logs:
-					if l.level == DEBUG:
+					if l.level == LOWDEBUG:
+						nlowdebug += 1
+					elif l.level == DEBUG:
 						ndebug += 1
 					elif l.level == INFO:
 						ninfo += 1
@@ -612,6 +614,7 @@ def main():
 						ncritical += 1
 					else:
 						nother += 1
+				print(f"        {Fore.LIGHTBLACK_EX}Number of LOWDEBUG: {Style.RESET_ALL}{nlowdebug}")
 				print(f"        {Fore.LIGHTBLACK_EX}Number of DEBUG: {Style.RESET_ALL}{ndebug}")
 				print(f"        {Fore.LIGHTBLACK_EX}Number of INFO: {Style.RESET_ALL}{ninfo}")
 				print(f"        {Fore.LIGHTBLACK_EX}Number of WARNING: {Style.RESET_ALL}{nwarning}")
