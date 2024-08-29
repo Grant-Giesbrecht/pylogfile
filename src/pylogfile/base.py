@@ -130,7 +130,9 @@ class LogEntry:
 	
 	def get_level_str(self):
 		
-		if self.level == DEBUG:
+		if self.level == LOWDEBUG:
+			return "LOWDEBUG"
+		elif self.level == DEBUG:
 			return "DEBUG"
 		elif self.level == RECORD:
 			return "RECORD"
