@@ -1,6 +1,6 @@
-''' Provides the basic functionality of the package. Most of the functionality of this
+""" Provides the basic functionality of the package. Most of the functionality of this
 module is contained in the `LogPile` and `LogEntry` classes.
-'''
+"""
 
 
 import datetime
@@ -35,7 +35,7 @@ ERROR = 40		# Software error
 CRITICAL = 50	# Critical error
 
 class SortConditions:
-	''' Class used to define the conditions of a LogEntry sort request.'''
+	""" Class used to define the conditions of a LogEntry sort request."""
 	
 	time_start = None
 	time_end = None
@@ -48,8 +48,8 @@ class SortConditions:
 #TODO: Make the keys in color_overrides match the variables in LogEntry (currently undefined)
 @dataclass
 class LogFormat:
-	''' Class used to describe the cosmetic formatting of LogEntries printed to 
-	standard output. '''
+	""" Class used to describe the cosmetic formatting of LogEntries printed to 
+	standard output. """
 	
 	show_detail:bool = False
 	use_color:bool = True
@@ -67,7 +67,7 @@ class LogFormat:
 	strip_newlines:bool = True
 
 def str_to_level(lvl:str) -> int:
-	'''
+	"""
 	Converts a log level string to its associated int code.
 	
 	Args:
@@ -75,7 +75,7 @@ def str_to_level(lvl:str) -> int:
 	
 	Returns:
 		int: The log level int code
-	'''
+	"""
 	
 	lvl = lvl.upper()
 	
@@ -100,7 +100,7 @@ def str_to_level(lvl:str) -> int:
 		return False
 
 class LogEntry:
-	''' Defines a single entry in the log. Contains log messages, levels, additional
+	""" Defines a single entry in the log. Contains log messages, levels, additional
 	detail, etc. 
 	
 	Attributes:
@@ -108,19 +108,19 @@ class LogEntry:
 		timestamp (datetime): Time at which log was created
 		message (str): Primary log message
 		detail (str): Additional log message detail
-	'''
+	"""
 	
 	default_format = LogFormat()
 	
 	def __init__(self, level:int=0, message:str="", detail:str=""):
-		'''
+		"""
 		Constructor for LogEntry class.
 		
 		Parameters:
 			level (int): Log level of the entry
 			message (str): Logging message
 			detail (str): Additional detail for message
-		'''
+		"""
 		# Set timestamp
 		self.timestamp = datetime.datetime.now()
 		
@@ -142,7 +142,7 @@ class LogEntry:
 
 	
 	def init_dict(self, data_dict:dict) -> bool:
-		'''
+		"""
 		Initializes a provided dictionary with the data from the LogEntry. Used when
 		preparing to save logs to file.
 		
@@ -151,7 +151,7 @@ class LogEntry:
 			
 		Returns:
 			(bool): Success status in converting class contents to dict
-		'''
+		"""
 		
 		# Extract data from dict
 		try:
@@ -174,12 +174,12 @@ class LogEntry:
 		return True
 	
 	def get_level_str(self) -> str:
-		'''
+		"""
 		Converts the log's level to a string
 		
 		Returns:
 			(str): Log level represented as a string.
-		'''
+		"""
 		
 		if self.level == LOWDEBUG:
 			return "LOWDEBUG"
@@ -201,31 +201,31 @@ class LogEntry:
 			return "??"
 		
 	def get_dict(self) -> dict:
-		''' Returns the contents of the log as a dictionary.
+		""" Returns the contents of the log as a dictionary.
 		
 		Returns:
 			(dict): Dictionary containing log entry data
-		'''
+		"""
 		return {"message":self.message, "detail":self.detail, "timestamp":str(self.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')) , "level":self.get_level_str()}
 	
 	def get_json(self) -> str:
-		'''
+		"""
 		Returns the class as a JSON string.
 		
 		Returns:
 			(str): All class data in JSON form
-		'''
+		"""
 		return json.dumps(self.get_dict())
 	
 	def str(self, str_fmt:LogFormat=None) -> str:
-		''' Represent the log entry as a formatted string suitable for printing.
+		""" Represent the log entry as a formatted string suitable for printing.
 		
 		Parameters:
 			str_fmt (LogFormat): Format specification
 		
 		Returns:
 			(str): String representation of class
-		'''
+		"""
 		
 		# Get format specifier
 		if str_fmt is None:
@@ -275,14 +275,14 @@ class LogEntry:
 		return s
 	
 	def matches_sort(self, orders:SortConditions) -> bool:
-		''' Checks if the entry matches the conditions specified by the SortConditions 'orders'. Returns true if they match and false if they don't. NOTE: Does not check index, that is only valid in a LogPile context.
+		""" Checks if the entry matches the conditions specified by the SortConditions 'orders'. Returns true if they match and false if they don't. NOTE: Does not check index, that is only valid in a LogPile context.
 		
 		Parameters:
 			orders (SortConditions): Sort conditions to check against
 		
 		Returns:
 			(bool): True if matched sort conditions
-		'''
+		"""
 		# Check if time conditions are specified
 		if (orders.time_start is not None) and (orders.time_end is not None):
 			
@@ -448,7 +448,7 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 		
 
 class LogPile:
-	'''
+	"""
 	Organizes a collection of LogEntries and creates new ones. All functions
 	are thread safe.
 	
@@ -469,7 +469,7 @@ class LogPile:
 			creation of logs across multiple threads.
 		run_mutex (Lock): Used to protect
 	
-	'''
+	"""
 	
 	#TODO: Add HDF
 	JSON = "format-json"
@@ -477,7 +477,7 @@ class LogPile:
 	
 	#TODO: Implement autosave. and autosave settigns.  
 	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None):
-		'''
+		"""
 		Constructor for LogPile class. 
 		
 		Parameters:
@@ -485,7 +485,7 @@ class LogPile:
 			autosave (bool): Enable or disable autosave
 			str_fmt (LogFormat): Optional logformat settings.
 		
-		'''
+		"""
 		
 		# Initialize format with defautl
 		if str_fmt is None:
@@ -509,7 +509,7 @@ class LogPile:
 		self.run_mutex = threading.Lock()
 	
 	def set_terminal_level(self, level_str:str):
-		'''
+		"""
 		Sets the terminal display level from a level name string.
 		
 		Parameters:
@@ -517,12 +517,12 @@ class LogPile:
 		
 		Returns:
 			None
-		'''
+		"""
 		
 		self.terminal_level = str_to_level(level_str)
 	
 	def lowdebug(self, message:str, detail:str=""):
-		'''
+		"""
 		Logs data at LOWDEBUG level.
 		
 		Parameters:
@@ -530,12 +530,12 @@ class LogPile:
 			detail (str): Additional detail to add to log
 		Returns:
 			None
-		'''
+		"""
 		
 		self.add_log(LOWDEBUG, message, detail=detail)
 	
 	def debug(self, message:str, detail:str=""):
-		'''
+		"""
 		Logs data at DEBUG level.
 		
 		Parameters:
@@ -543,12 +543,12 @@ class LogPile:
 			detail (str): Additional detail to add to log
 		Returns:
 			None
-		'''
+		"""
 		
 		self.add_log(DEBUG, message, detail=detail)
 	
 	def info(self, message:str, detail:str=""):
-		'''
+		"""
 		Logs data at INFO level.
 		
 		Parameters:
@@ -556,12 +556,12 @@ class LogPile:
 			detail (str): Additional detail to add to log
 		Returns:
 			None
-		'''
+		"""
 		
 		self.add_log(INFO, message, detail=detail)
 	
 	def warning(self, message:str, detail:str=""):
-		'''
+		"""
 		Logs data at WARNING level.
 		
 		Parameters:
@@ -569,12 +569,12 @@ class LogPile:
 			detail (str): Additional detail to add to log
 		Returns:
 			None
-		'''
+		"""
 		
 		self.add_log(WARNING, message, detail=detail)
 	
 	def error(self, message:str, detail:str=""):
-		'''
+		"""
 		Logs data at ERROR level.
 		
 		Parameters:
@@ -582,12 +582,12 @@ class LogPile:
 			detail (str): Additional detail to add to log
 		Returns:
 			None
-		'''
+		"""
 		
 		self.add_log(ERROR, message, detail=detail)
 
 	def critical(self, message:str, detail:str=""):
-		'''
+		"""
 		Logs data at CRITICAL level.
 		
 		Parameters:
@@ -595,12 +595,12 @@ class LogPile:
 			detail (str): Additional detail to add to log
 		Returns:
 			None
-		'''
+		"""
 		
 		self.add_log(CRITICAL, message, detail=detail)
 	
 	def add_log(self, level:int, message:str, detail:str=""):
-		'''
+		"""
 		Adds a log.
 		
 		Parameters:
@@ -609,7 +609,7 @@ class LogPile:
 			detail (str): Additional detail to add to log
 		Returns:
 			None
-		'''
+		"""
 		
 		# Create new log object
 		nl = LogEntry(level, message, detail=detail)
@@ -623,7 +623,7 @@ class LogPile:
 			self.run_new_log(nl)
 	
 	def run_new_log(self, nl:LogEntry):
-		'''
+		"""
 		Runs a new log, processing any instructions therein. Typically this just
 		entails printing the log, formatted, to standard output.
 		
@@ -632,7 +632,7 @@ class LogPile:
 		
 		Returns:
 			None
-		'''
+		"""
 		
 		# Print to terminal
 		if self.terminal_output_enable:
@@ -640,22 +640,22 @@ class LogPile:
 				print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
 	
 	def to_dict(self):
-		'''
+		"""
 		Returns a dictionary representing the logs in the LogPile.
-		'''
+		"""
 		
 		with self.log_mutex:
 			return [x.get_dict() for x in self.logs]
 	
 	def save_json(self, save_filename:str):
-		'''Saves all log data to a JSON file.
+		"""Saves all log data to a JSON file.
 		
 		Parameters:
 			save_filename (str): filename to save
 		
 		Returns:
 			None
-		'''
+		"""
 		
 		ad = self.to_dict()
 		
@@ -664,7 +664,7 @@ class LogPile:
 			json.dump({"logs":ad}, fh, indent=4)
 	
 	def load_json(self, read_filename:str, clear_previous:bool=True) -> bool:
-		'''
+		"""
 		Reads logs from a JSON file.
 		
 		Parameters:
@@ -674,7 +674,7 @@ class LogPile:
 			
 		Returns:
 			(bool): True if successfully read file
-		'''
+		"""
 		
 		all_success = True
 		
@@ -699,7 +699,7 @@ class LogPile:
 		return all_success
 	
 	def save_hdf(self, save_filename):
-		'''
+		"""
 		Saves all logs to an HDF5 file.
 		
 		Parameters:
@@ -707,7 +707,7 @@ class LogPile:
 		
 		Returns:
 			None
-		'''
+		"""
 		
 		#TODO: This should return a bool for success
 		
@@ -735,7 +735,7 @@ class LogPile:
 			fh['logs'].create_dataset('level', data=level_list)
 	
 	def load_hdf(self, read_filename:str, clear_previous:bool=True):
-		'''
+		"""
 		Reads logs from an HDF5 file.
 		
 		Parameters:
@@ -745,7 +745,7 @@ class LogPile:
 		
 		Returns:
 			(bool): Success status
-		'''
+		"""
 		
 		all_success = True
 		
@@ -787,7 +787,7 @@ class LogPile:
 		pass
 	
 	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, str_fmt:LogFormat=None):
-		'''
+		"""
 		Prints to standard output the logs matching the specified conditions.
 		
 		Args:
@@ -799,7 +799,7 @@ class LogPile:
 		
 		Returns:
 			None
-		'''
+		"""
 		
 		# Check max number is zero or less
 		if max_number is not None and max_number < 1:
