@@ -5,7 +5,7 @@
 Pylogfile provides a better method for implementing logging in your Python scripts.
 
 - **PyPI:** https://pypi.org/project/pylogfile/
-- **Documentation:** 
+- **Documentation:** https://pylogfile.readthedocs.io/en/latest/
 - **Source Code:** [https://github.com/](https://github.com/Grant-Giesbrecht/pylogfile/)
 
 Core features:

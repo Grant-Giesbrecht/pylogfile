@@ -1,0 +1,148 @@
+{
+    "logs": [
+        {
+            "message": "This is an info message.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.601784",
+            "level": "INFO"
+        },
+        {
+            "message": "This is an error message.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.601784",
+            "level": "ERROR"
+        },
+        {
+            "message": "This is a log message.",
+            "detail": "This is where we can add a ton ofextra details. This is hidden by default, but still saved with the logs.You can also set details to be shown by default using the code below:",
+            "timestamp": "2024-09-14 13:43:39.601784",
+            "level": "INFO"
+        },
+        {
+            "message": "We just set `show_detail` to `True`.",
+            "detail": "This is the detail string.",
+            "timestamp": "2024-09-14 13:43:39.691847",
+            "level": "INFO"
+        },
+        {
+            "message": "The messages should now print in blue!",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.751886",
+            "level": "INFO"
+        },
+        {
+            "message": "The messages will now be colorless",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.801925",
+            "level": "INFO"
+        },
+        {
+            "message": "Let's demonstrate >bold< text.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.862008",
+            "level": "INFO"
+        },
+        {
+            "message": "Pi = >3.1415926535<.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.862008",
+            "level": "INFO"
+        },
+        {
+            "message": "Text type >:bbold<. Can also use >:2bold<.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.932349",
+            "level": "INFO"
+        },
+        {
+            "message": "Text type >:qquiet<. Can also use >:3quiet<.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.932349",
+            "level": "INFO"
+        },
+        {
+            "message": "Text type >:aalt<. Can also use >:4alt<.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.932349",
+            "level": "INFO"
+        },
+        {
+            "message": "Text type >:llabel<. Can also use >:5label<.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.932349",
+            "level": "INFO"
+        },
+        {
+            "message": "Permanently change to >>:q quiet >:1 Show main < Now >bold< and back to quiet.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.981910",
+            "level": "INFO"
+        },
+        {
+            "message": "New log resets back to main.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:39.981910",
+            "level": "INFO"
+        },
+        {
+            "message": "Backslash escapes color change sequences. \\>no color change\\<",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.041943",
+            "level": "INFO"
+        },
+        {
+            "message": "\\>\\>:3no color change\\<",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.041943",
+            "level": "INFO"
+        },
+        {
+            "message": "This is a lowdebug message",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.092707",
+            "level": "LOWDEBUG"
+        },
+        {
+            "message": "This is a debug message",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.092707",
+            "level": "DEBUG"
+        },
+        {
+            "message": "This is an info message",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.092707",
+            "level": "INFO"
+        },
+        {
+            "message": "This is a warning message",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.092707",
+            "level": "WARNING"
+        },
+        {
+            "message": "This is a error message",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.092707",
+            "level": "ERROR"
+        },
+        {
+            "message": "This is a critical message",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.092707",
+            "level": "CRITICAL"
+        },
+        {
+            "message": "Changing terminal level to DEBUG.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.142707",
+            "level": "DEBUG"
+        },
+        {
+            "message": "So lowdebug messages still will not be displayed.",
+            "detail": "",
+            "timestamp": "2024-09-14 13:43:40.142707",
+            "level": "LOWDEBUG"
+        }
+    ]
+}
