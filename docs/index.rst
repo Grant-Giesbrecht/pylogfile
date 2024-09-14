@@ -11,6 +11,7 @@ Welcome to pylogfile's documentation!
    :caption: Contents:
 
    modules
+   pylogfile.scripts
 
 Indices and tables
 ==================

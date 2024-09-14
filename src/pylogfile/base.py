@@ -448,12 +448,44 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 		
 
 class LogPile:
-	''' Organizes a collection of LogEntries and creates new ones. All functions are thread safe.'''
+	'''
+	Organizes a collection of LogEntries and creates new ones. All functions
+	are thread safe.
 	
+	Attributes:
+	
+		terminal_output_enable (bool): Enables or disables automatically \
+			printing each log to the standard output.
+		terminal_level (int): Log level, at or above, which logs will print to \
+			the standard output. 
+		autosave_enable (bool): Tracks if autosave is enabled
+		filename (str): Name to autosave
+		autosave_period_s (float): Time between autosaves in seconds
+		autosave_level (int): Minimum log level to save. 
+		autosave_format (str): File format for autosave. Options are 'format-json' and 'format-txt'.
+		str_fmt (LogFormat): LogFormat settings
+		logs (list): List of LogEntries contained in the LogPile.
+		log_mutex (Lock): Used to protect the `logs` attribute and allow the \
+			creation of logs across multiple threads.
+		run_mutex (Lock): Used to protect
+	
+	'''
+	
+	#TODO: Add HDF
 	JSON = "format-json"
 	TXT = "format-txt"
 	
+	#TODO: Implement autosave. and autosave settigns.  
 	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None):
+		'''
+		Constructor for LogPile class. 
+		
+		Parameters:
+			filename (str): Name of file to autosave to.
+			autosave (bool): Enable or disable autosave
+			str_fmt (LogFormat): Optional logformat settings.
+		
+		'''
 		
 		# Initialize format with defautl
 		if str_fmt is None:
@@ -477,41 +509,107 @@ class LogPile:
 		self.run_mutex = threading.Lock()
 	
 	def set_terminal_level(self, level_str:str):
-		''' Sets the terminal display level from a level name string. '''
+		'''
+		Sets the terminal display level from a level name string.
+		
+		Parameters:
+			level_str (str): Level to set
+		
+		Returns:
+			None
+		'''
+		
 		self.terminal_level = str_to_level(level_str)
 	
 	def lowdebug(self, message:str, detail:str=""):
-		''' Logs data at LOWDEBUG level. Thread safe.'''
+		'''
+		Logs data at LOWDEBUG level.
+		
+		Parameters:
+			message (str): Message to add to log
+			detail (str): Additional detail to add to log
+		Returns:
+			None
+		'''
 		
 		self.add_log(LOWDEBUG, message, detail=detail)
 	
 	def debug(self, message:str, detail:str=""):
-		''' Logs data at DEBUG level. Thread safe.'''
+		'''
+		Logs data at DEBUG level.
+		
+		Parameters:
+			message (str): Message to add to log
+			detail (str): Additional detail to add to log
+		Returns:
+			None
+		'''
 		
 		self.add_log(DEBUG, message, detail=detail)
 	
 	def info(self, message:str, detail:str=""):
-		''' Logs data at INFO level. Thread safe.'''
+		'''
+		Logs data at INFO level.
+		
+		Parameters:
+			message (str): Message to add to log
+			detail (str): Additional detail to add to log
+		Returns:
+			None
+		'''
 		
 		self.add_log(INFO, message, detail=detail)
 	
 	def warning(self, message:str, detail:str=""):
-		''' Logs data at WARNING level. Thread safe.'''
+		'''
+		Logs data at WARNING level.
+		
+		Parameters:
+			message (str): Message to add to log
+			detail (str): Additional detail to add to log
+		Returns:
+			None
+		'''
 		
 		self.add_log(WARNING, message, detail=detail)
 	
 	def error(self, message:str, detail:str=""):
-		''' Logs data at ERROR level. Thread safe.'''
+		'''
+		Logs data at ERROR level.
+		
+		Parameters:
+			message (str): Message to add to log
+			detail (str): Additional detail to add to log
+		Returns:
+			None
+		'''
 		
 		self.add_log(ERROR, message, detail=detail)
 
 	def critical(self, message:str, detail:str=""):
-		''' Logs data at CRITICAL level. Thread safe.'''
+		'''
+		Logs data at CRITICAL level.
+		
+		Parameters:
+			message (str): Message to add to log
+			detail (str): Additional detail to add to log
+		Returns:
+			None
+		'''
 		
 		self.add_log(CRITICAL, message, detail=detail)
 	
 	def add_log(self, level:int, message:str, detail:str=""):
-		''' Adds a log. Thread safe.'''
+		'''
+		Adds a log.
+		
+		Parameters:
+			level (int): Level int code at which to add log
+			message (str): Message to add to log
+			detail (str): Additional detail to add to log
+		Returns:
+			None
+		'''
 		
 		# Create new log object
 		nl = LogEntry(level, message, detail=detail)
@@ -525,7 +623,16 @@ class LogPile:
 			self.run_new_log(nl)
 	
 	def run_new_log(self, nl:LogEntry):
-		'''Runs a new log (often this means print to stdout). Thread safe.'''
+		'''
+		Runs a new log, processing any instructions therein. Typically this just
+		entails printing the log, formatted, to standard output.
+		
+		Parameters:
+			nl (LogEntry): Log to run
+		
+		Returns:
+			None
+		'''
 		
 		# Print to terminal
 		if self.terminal_output_enable:
@@ -533,13 +640,22 @@ class LogPile:
 				print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
 	
 	def to_dict(self):
-		''' Returns a dictionary representing the logs in the LogPile. Thread safe. '''
+		'''
+		Returns a dictionary representing the logs in the LogPile.
+		'''
 		
 		with self.log_mutex:
 			return [x.get_dict() for x in self.logs]
 	
 	def save_json(self, save_filename:str):
-		''' Saves all log data to a JSON file. Thread safe. '''
+		'''Saves all log data to a JSON file.
+		
+		Parameters:
+			save_filename (str): filename to save
+		
+		Returns:
+			None
+		'''
 		
 		ad = self.to_dict()
 		
@@ -547,8 +663,19 @@ class LogPile:
 		with open(save_filename, 'w') as fh:
 			json.dump({"logs":ad}, fh, indent=4)
 	
-	def load_json(self, read_filename:str, clear_previous:bool=True):
-		''' Reads logs from a JSON file. Thread safe. '''
+	def load_json(self, read_filename:str, clear_previous:bool=True) -> bool:
+		'''
+		Reads logs from a JSON file.
+		
+		Parameters:
+			read_filename (str): Name of file to read
+			clear_previous (bool): Sets whether previous logs contained in the \
+				LogPile shouold be erased before reading the file.
+			
+		Returns:
+			(bool): True if successfully read file
+		'''
+		
 		all_success = True
 		
 		# Read JSON dictionary
@@ -572,7 +699,18 @@ class LogPile:
 		return all_success
 	
 	def save_hdf(self, save_filename):
-		''' Saves all logs to an HDF5 file. Thread safe.'''
+		'''
+		Saves all logs to an HDF5 file.
+		
+		Parameters:
+			save_filename (str): Name of file to save to
+		
+		Returns:
+			None
+		'''
+		
+		#TODO: This should return a bool for success
+		
 		ad = self.to_dict()
 		
 		message_list = []
@@ -597,7 +735,17 @@ class LogPile:
 			fh['logs'].create_dataset('level', data=level_list)
 	
 	def load_hdf(self, read_filename:str, clear_previous:bool=True):
-		''' Reads logs from an HDF5 file. Thread safe. '''
+		'''
+		Reads logs from an HDF5 file.
+		
+		Parameters:
+			read_filename (str): Name of file to read
+			clear_previous (bool): Sets whether previous logs contained in the \
+				LogPile shouold be erased before reading the file.
+		
+		Returns:
+			(bool): Success status
+		'''
 		
 		all_success = True
 		
@@ -630,15 +778,17 @@ class LogPile:
 		return all_success
 			
 	
+	#TODO: Implement or remove this
 	def save_txt(self):
 		pass
 	
+	# TODO: Implement or remove this
 	def begin_autosave(self):
 		pass
 	
 	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, str_fmt:LogFormat=None):
 		'''
-		Shows logs matching the specified conditions. Thread safe. 
+		Prints to standard output the logs matching the specified conditions.
 		
 		Args:
 			min_level (int): Minimum logging level to display
