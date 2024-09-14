@@ -72,8 +72,12 @@ Lumberjack has lots of other search functions, commands, and features. You can l
 
 ## Documentation
 
-Todo
+Pylogfile's documentation can be found on [ReadTheDocs](https://pylogfile.readthedocs.io/en/latest/).
 
 ## Requirements
 
-Todo
+- Python >= 3.9
+- numpy >= 1.0.0
+- h5py >= 3.11.0
+- colorama >= 0.4.6
+- importlib >= 1.0.0

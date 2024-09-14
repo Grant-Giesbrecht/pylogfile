@@ -1,3 +1,8 @@
+''' Provides the basic functionality of the package. Most of the functionality of this
+module is contained in the `LogPile` and `LogEntry` classes.
+'''
+
+
 import datetime
 import json
 from dataclasses import dataclass, field
@@ -30,6 +35,7 @@ ERROR = 40		# Software error
 CRITICAL = 50	# Critical error
 
 class SortConditions:
+	''' Class used to define the conditions of a LogEntry sort request.'''
 	
 	time_start = None
 	time_end = None
@@ -42,6 +48,8 @@ class SortConditions:
 #TODO: Make the keys in color_overrides match the variables in LogEntry (currently undefined)
 @dataclass
 class LogFormat:
+	''' Class used to describe the cosmetic formatting of LogEntries printed to 
+	standard output. '''
 	
 	show_detail:bool = False
 	use_color:bool = True
@@ -59,6 +67,17 @@ class LogFormat:
 	strip_newlines:bool = True
 
 def str_to_level(lvl:str) -> int:
+	'''
+	Converts a log level string to its associated int code.
+	
+	Args:
+		lvl (str): Log level string, case-insensitive
+	
+	Returns:
+		int: The log level int code
+	'''
+	
+	lvl = lvl.upper()
 	
 	# Set level
 	if lvl == "LOWDEBUG":
@@ -81,11 +100,27 @@ def str_to_level(lvl:str) -> int:
 		return False
 
 class LogEntry:
+	''' Defines a single entry in the log. Contains log messages, levels, additional
+	detail, etc. 
+	
+	Attributes:
+		level (int): Log level int code
+		timestamp (datetime): Time at which log was created
+		message (str): Primary log message
+		detail (str): Additional log message detail
+	'''
 	
 	default_format = LogFormat()
 	
 	def __init__(self, level:int=0, message:str="", detail:str=""):
+		'''
+		Constructor for LogEntry class.
 		
+		Parameters:
+			level (int): Log level of the entry
+			message (str): Logging message
+			detail (str): Additional detail for message
+		'''
 		# Set timestamp
 		self.timestamp = datetime.datetime.now()
 		
@@ -107,6 +142,16 @@ class LogEntry:
 
 	
 	def init_dict(self, data_dict:dict) -> bool:
+		'''
+		Initializes a provided dictionary with the data from the LogEntry. Used when
+		preparing to save logs to file.
+		
+		Parameters:
+			data_dict (dict): Dictionary to populate with data
+			
+		Returns:
+			(bool): Success status in converting class contents to dict
+		'''
 		
 		# Extract data from dict
 		try:
@@ -128,7 +173,13 @@ class LogEntry:
 		
 		return True
 	
-	def get_level_str(self):
+	def get_level_str(self) -> str:
+		'''
+		Converts the log's level to a string
+		
+		Returns:
+			(str): Log level represented as a string.
+		'''
 		
 		if self.level == LOWDEBUG:
 			return "LOWDEBUG"
@@ -149,14 +200,32 @@ class LogEntry:
 		else:
 			return "??"
 		
-	def get_dict(self):
+	def get_dict(self) -> dict:
+		''' Returns the contents of the log as a dictionary.
+		
+		Returns:
+			(dict): Dictionary containing log entry data
+		'''
 		return {"message":self.message, "detail":self.detail, "timestamp":str(self.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')) , "level":self.get_level_str()}
 	
-	def get_json(self):
+	def get_json(self) -> str:
+		'''
+		Returns the class as a JSON string.
+		
+		Returns:
+			(str): All class data in JSON form
+		'''
 		return json.dumps(self.get_dict())
 	
 	def str(self, str_fmt:LogFormat=None) -> str:
-		''' Represent the log entry as a string.'''
+		''' Represent the log entry as a formatted string suitable for printing.
+		
+		Parameters:
+			str_fmt (LogFormat): Format specification
+		
+		Returns:
+			(str): String representation of class
+		'''
 		
 		# Get format specifier
 		if str_fmt is None:
@@ -207,6 +276,12 @@ class LogEntry:
 	
 	def matches_sort(self, orders:SortConditions) -> bool:
 		''' Checks if the entry matches the conditions specified by the SortConditions 'orders'. Returns true if they match and false if they don't. NOTE: Does not check index, that is only valid in a LogPile context.
+		
+		Parameters:
+			orders (SortConditions): Sort conditions to check against
+		
+		Returns:
+			(bool): True if matched sort conditions
 		'''
 		# Check if time conditions are specified
 		if (orders.time_start is not None) and (orders.time_end is not None):
@@ -242,25 +317,40 @@ class LogEntry:
 		return True
 	
 def markdown(msg:str, str_fmt:LogFormat=None) -> str:
-	""" Applys Pylogfile markdown
-		> Temporarily change to bold
-		< Revert to previous color
-		
-		>:n Temporariliy change to color 'n'. n-codes: Case insensitive
-			1 or m: Main
-			2 or b: Bold
-			3 or q: Quiet
-			4 or a: Alt
-			5 or l: Label
-		
-		>> Permanently change to bold
-		>>:n Permanently change to color n
-		
-		\\>, \\<, Type character without color adjustment. So to get >>:3
-			to appear you'd type \\>\\>:3.
-		
-		If you want to type > followed by a character
-		
+	"""
+	Applys Pylogfile markdown to a string. Pylogfile markdown uses a series of characters
+	to change the color of the output text. 
+	
+	List of escape characters to alter text color:
+	
+	- `>` Temporarily change to bold
+	- `<` Revert to previous color
+	- `>:n` Temporariliy change to color 'n' (See list of 'n'-codes below)
+	- `>>` Permanently change to bold
+	- `>>:n` Permanently change to color 'n' (See list of 'n'-codes below)
+	
+	A backslash can be used to escape angle brackets and forgoe applying color
+	adjustment. For example, `"\\>"` and `"\\<"` would render `">"` and `"<"`, respectively
+	once processed through pylogfile markdown. So as an example, to render `">>:3"`, 
+	you would need to input `"\\>\\>:3"`.
+	
+	List of 'n'-codes: (Case insensitive)
+	
+	- `1` or `m`: Main
+	- `2` or `b`: Bold
+	- `3` or `q`: Quiet
+	- `4` or `a`: Alt
+	- `5` or `l`: Label
+	
+	So for example, `">:3Test<"` or `">:qTest<"` would change the color to 'Quiet', print
+	`'Test'`, and return to the original color.
+	 
+	Parameters:
+		msg (str): String to process with pylogfile markdown.
+		str_fmt (LogFormat): Optional formatting specification to apply
+	
+	Returns:
+		(str): Formatted text
 	"""
 	
 	# Get default format
