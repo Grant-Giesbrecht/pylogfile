@@ -24,7 +24,7 @@ extensions = [
 
 nbsphinx_execute = 'always'
 nbsphinx_allow_errors = True
-nbsphinx_kernel_name = 'python'
+nbsphinx_kernel_name = 'python3'
 numpydoc_show_class_members = False
 nbsphinx_timeout = 180
 
