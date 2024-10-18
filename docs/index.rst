@@ -16,8 +16,7 @@ Documentation
     :maxdepth: 2
     
     tutorials/index.rst
-    modules
-    pylogfile.scripts
+    pylogfile
     license
     
 
@@ -26,6 +25,5 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
 
 .. _pylogfilehome: https://github.com/Grant-Giesbrecht/pylogfile/

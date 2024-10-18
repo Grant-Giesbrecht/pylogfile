@@ -1,16 +1,5 @@
-pylogfile package
+pylogfile API
 =================
-
-Subpackages
------------
-
-.. toctree::
-   :maxdepth: 4
-
-   pylogfile.scripts
-
-Submodules
-----------
 
 pylogfile.base module
 ---------------------
@@ -27,3 +16,11 @@ Module contents
    :members:
    :undoc-members:
    :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+   :maxdepth: 1
+
+   pylogfile.scripts
