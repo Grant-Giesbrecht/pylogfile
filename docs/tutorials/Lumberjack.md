@@ -1,4 +1,4 @@
-## Lumberjack
+# Lumberjack
 
 Lumberjack is a command line interface (CLI) script included with pylogfile that allows log files to quickly be viewed, sorted, and analyzed. A log file can be opened in lumberjack with:
 
