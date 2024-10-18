@@ -18,7 +18,12 @@ Documentation
     tutorials/index.rst
     pylogfile
     license
-    
+
+Links
+==================
+* `pylogfile on PyPI <https://pypi.org/project/pylogfile/>`_
+* `GitHub Source <https://github.com/Grant-Giesbrecht/pylogfile/>`_
+
 
 Indices and tables
 ==================
