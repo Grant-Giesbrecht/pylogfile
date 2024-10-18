@@ -9,13 +9,13 @@ pylogfile.base module
    :undoc-members:
    :show-inheritance:
 
-Module contents
----------------
+.. Module contents
+.. ---------------
 
-.. automodule:: pylogfile
-   :members:
-   :undoc-members:
-   :show-inheritance:
+.. .. automodule:: pylogfile
+..    :members:
+..    :undoc-members:
+..    :show-inheritance:
 
 Subpackages
 -----------

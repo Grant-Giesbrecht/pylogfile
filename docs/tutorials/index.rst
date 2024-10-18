@@ -9,3 +9,4 @@ These tutorials are intended to get you started off on the right foot.
     :maxdepth: 2
 
     Introduction
+    WhyPylogfile
