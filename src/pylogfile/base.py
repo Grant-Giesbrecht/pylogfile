@@ -43,7 +43,14 @@ class SortConditions:
 	contains_or = []
 	index_start = None
 	index_end = None
-	
+
+class DummyMutex:
+	def __init__(self):
+		pass
+	def __enter__(self):
+		return
+	def __exit__(self, exc_type, exc_value, traceback):
+		return
 
 #TODO: Make the keys in color_overrides match the variables in LogEntry (currently undefined)
 @dataclass
@@ -452,6 +459,10 @@ class LogPile:
 	Organizes a collection of LogEntries and creates new ones. All functions
 	are thread safe.
 	
+	use_mutex allows the user to specify that the mutex should or should not be 
+	used. Because mutexes are not serializable, if the LogPile object will need
+	to be deepcopied, use_mutex should be set to false.
+	
 	Attributes:
 	
 		terminal_output_enable (bool): Enables or disables automatically \
@@ -476,7 +487,7 @@ class LogPile:
 	TXT = "format-txt"
 	
 	#TODO: Implement autosave. and autosave settigns.  
-	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None):
+	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None, use_mutex:bool=True):
 		"""
 		Constructor for LogPile class. 
 		
@@ -505,8 +516,18 @@ class LogPile:
 		self.logs = []
 		
 		# mutexes
-		self.log_mutex = threading.Lock()
-		self.run_mutex = threading.Lock()
+		self.log_mutex = None
+		self.run_mutex = None
+		self.set_enable_mutex(use_mutex)
+	
+	def set_enable_mutex(self, enabled:bool):
+		
+		if enabled:
+			self.log_mutex = threading.Lock()
+			self.run_mutex = threading.Lock()
+		else:
+			self.log_mutex = DummyMutex()
+			self.run_mutex = DummyMutex()
 	
 	def set_terminal_level(self, level_str:str):
 		"""
