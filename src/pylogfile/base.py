@@ -253,11 +253,19 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 			4 or a: Alt
 			5 or l: Label
 		
+		>:freeze> Sets the lock. All markdown commands except `unlock` are
+			ignored until the lock is removed. case insensitive.
+		<:freeze< Removes the lock, resuming normal markdown operation. Case
+			insensitive.
+		
+		
 		>> Permanently change to bold
 		>>:n Permanently change to color n
 		
 		\\>, \\<, Type character without color adjustment. So to get >>:3
-			to appear you'd type \\>\\>:3.
+			to appear you'd type \\>\\>:3. Similarly, to type a lock character
+			without setting or remove the lock, type \\>:L\\> or 
+			\\<:L\\<
 		
 		If you want to type > followed by a character
 		
@@ -287,10 +295,11 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 	# Get every index of '>', '<', and '\\'
 	idx = 0
 	replacements = []
+	lock_is_set = False
 	while idx < len(msg):
 		
 		# Look for escape character
-		if msg[idx] == '\\':
+		if (not lock_is_set) and msg[idx] == '\\':
 			
 			# If next character is > or <, remove the escape
 			if idx+1 < len(msg) and msg[idx+1] == '>':
@@ -302,7 +311,7 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 			continue
 		
 		# Look for non-escaped >
-		elif msg[idx] == '>':
+		elif (not lock_is_set) and msg[idx] == '>':
 			
 			idx_start = idx
 			is_permanent = False
@@ -314,7 +323,7 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 				is_permanent = True
 				idx += 1
 			
-			# Check for color specifier
+			# Check for color specifier or lock
 			if idx+2 < len(msg) and msg[idx+1] == ':': # Found color specifier
 				
 				if msg[idx+2].upper() in ['1', 'M']:
@@ -327,6 +336,18 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 					color_spec = c_alt
 				elif msg[idx+2].upper() in ['5', 'L']:
 					color_spec = c_label
+				elif msg[idx+2].upper() in ['5', 'F']:
+					
+					# Check if lock is being set
+					if idx+8 < len(msg) and msg[idx:idx+9].upper() == ">:FREEZE>":
+						
+						# Set lock
+						lock_is_set = True
+						
+						# Remove sequence
+						replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+8})
+						is_invalid = True # Call code "invalid" color code so it doesnt trigger color replacement
+
 				else:
 					# Unrecognized code, do not modify
 					is_invalid = True
@@ -344,7 +365,16 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 		# Look for non-escaped <
 		elif msg[idx] == '<':
 			
-			replacements.append({'text': return_color, 'idx_start': idx, 'idx_end': idx})
+			# Check if lock is being set
+			if idx+8 < len(msg) and msg[idx:idx+9].upper() == "<:FREEZE<":
+				
+				# Set lock
+				lock_is_set = False
+				
+				# Remove sequence
+				replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+8})
+			elif (not lock_is_set):
+				replacements.append({'text': return_color, 'idx_start': idx, 'idx_end': idx})
 		
 		# Increment counter
 		idx += 1
