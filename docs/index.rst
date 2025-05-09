@@ -1,15 +1,28 @@
-.. pylogfile documentation master file, created by
-   sphinx-quickstart on Mon Jun 24 10:44:08 2024.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. image:: images/pylogfile_logo_banner.svg
+    :target: pylogfilehome_
+    :width: 400
+    :align: center
 
-Welcome to pylogfile's documentation!
+**pylogfile** is an open source, BSD-licensed package for generating rich logs in Python. Pylogfile 
+enables log messages to be more useful than traditional logs by embedding markdown, optional 
+sub-messages including additional details, timestamps, and log levels. It also provides ways to save
+the logs in JSON or HDF formats, with HDF providing a compact binary representation. Furthermore,
+the included `lumberjack` script allows log files to quickly be summarized, sorted and searched!
+
+Documentation
 =====================================
 
 .. toctree::
-   :maxdepth: 2
-   :caption: Contents:
+    :maxdepth: 2
+    
+    tutorials/index.rst
+    pylogfile
+    license
 
+Links
+==================
+* `pylogfile on PyPI <https://pypi.org/project/pylogfile/>`_
+* `GitHub Source <https://github.com/Grant-Giesbrecht/pylogfile/>`_
 
 
 Indices and tables
@@ -17,4 +30,5 @@ Indices and tables
 
 * :ref:`genindex`
 * :ref:`modindex`
-* :ref:`search`
+
+.. _pylogfilehome: https://github.com/Grant-Giesbrecht/pylogfile/

@@ -48,6 +48,8 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 
 #TODO: Change where elipses print for --last
 
+#TODO: Bug: will crash if provided invalid HDF file, or file with no logs (and run show -l)
+
 #TODO: Make it so you can apply search strings to only details or only message or both
 #TODO: Modify keyword search to preserve strings so phrass can be searched
 #TODO: Search by timestamp
@@ -58,6 +60,7 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 ##================================================================
 # Read commandline Arguments
 
+# if __name__ == "__main__":
 parser = argparse.ArgumentParser()
 parser.add_argument('filename')
 parser.add_argument('--last', help="Show last X number of logs", action='store_true')
@@ -66,6 +69,18 @@ parser.add_argument('-g', '--gui', help="Use graphical interface", action='store
 parser.add_argument('-a', '--all', help="Print all logs", action='store_true')
 parser.add_argument('-nc', '--nocli', help="Skip the CLI", action='store_true')
 args = parser.parse_args()
+# else:
+# 	# For auto-documentation to generate, arparse must not run. Here we make a dummy version.
+# 	class FakeArgs():
+# 		def __init__(self):
+# 			self.filename = ""
+# 			self.last=False
+# 			self.first=False
+# 			self.gui=False
+# 			self.all=False
+# 			self.nocli=False
+# 	args = FakeArgs()
+		
 
 if args.gui:
 	print(f"{Fore.RED}GUI has not been implemented. Continuing with CLI.{Style.RESET_ALL}")

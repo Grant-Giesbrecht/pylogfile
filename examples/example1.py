@@ -26,3 +26,6 @@ log3 = LogPile(str_fmt=fmt)
 if not log3.load_hdf("test.log.hdf"):
 	print("\tFailed to read HDF")
 log3.show_logs()
+
+
+log3.make_level("new_debug", 14)
