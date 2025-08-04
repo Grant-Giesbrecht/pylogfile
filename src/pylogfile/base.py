@@ -13,15 +13,6 @@ import threading
 
 #TODO: Save only certain log levels
 #TODO: Autosave
-#TODO: Log more info
-#TODO: Log to string etc
-#TODO: Integrate with logger
-
-xDEBUG = -10
-xINFO = -20
-xWARNING = -30
-xERROR = -40
-xCRITICAL = -50
 
 RECORD = -25
 CORE = -30
@@ -302,8 +293,11 @@ class LogEntry:
 			
 			# Check if all are hits
 			for targ in orders.contains_and:
+				# print(f"Searching for target: {targ} in {self.message} and {self.detail}.")
 				if (targ not in self.message) and (targ not in self.detail):
+					# print(f"  -> Failed to find target")
 					return False
+				# print(f"  -> Found target")
 		
 		# Check if contains_or is specified
 		if len(orders.contains_or) > 0:
@@ -340,6 +334,12 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 		to appear you'd type \\>\\>:3. Similarly, to type a lock character
 		without setting or remove the lock, type \\>:L\\> or 
 		\\<:L\\<
+	
+	List of escape characters used to lock markdown: (Case-sensitive)
+	- `@:LOCK` Enables the lock, ignoring all markdown except `@:UNLOCK`
+	- `@:UNLOCK` Disables the lock, re-enabling all markdown.
+	To Preface either of these sequences with `\\` (ie. a single backslash) to
+	interpret them as text rather than a lock character. 
 	
 	A backslash can be used to escape angle brackets and forgoe applying color
 	adjustment. For example, `"\\>"` and `"\\<"` would render `">"` and `"<"`, respectively
@@ -401,9 +401,34 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 			elif idx+1 < len(msg) and msg[idx+1] == '<':
 				replacements.append({'text': '<', 'idx_start': idx, 'idx_end': idx+1})
 			
+			# If next character is @, check for lock/unlock and remove escape
+			elif idx+6 < len(msg) and msg[idx+1:idx+7] == "@:LOCK":
+				replacements.append({'text': '@:LOCK', 'idx_start': idx, 'idx_end': idx+6})
+			elif idx+8 < len(msg) and msg[idx+1:idx+9] == "@:UNLOCK":
+				replacements.append({'text': '@:UNLOCK', 'idx_start': idx, 'idx_end': idx+8})
+			
 			idx += 2 # Skip next character - restart
 			continue
 		
+		elif msg[idx] == "@":
+			
+			# Check for lock character
+			if (not lock_is_set) and idx+5 < len(msg) and msg[idx+1:idx+6] == ':LOCK': # Set lock
+				# Set lock
+				lock_is_set = True
+						
+				# Remove sequence
+				replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+5})
+				is_invalid = True # Call code "invalid" color code so it doesnt trigger color replacement
+			
+			elif idx+7 < len(msg) and msg[idx+1:idx+8] == ":UNLOCK": # Remove lock
+				# Remove lock
+				lock_is_set = False
+				
+				# Remove sequence
+				replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+7})
+				is_invalid = True # Call code "invalid" color code so it doesnt trigger color replacement
+			
 		# Look for non-escaped >
 		elif (not lock_is_set) and msg[idx] == '>':
 			
@@ -430,17 +455,17 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 					color_spec = c_alt
 				elif msg[idx+2].upper() in ['5', 'L']:
 					color_spec = c_label
-				elif msg[idx+2].upper() in ['5', 'F']:
+				# elif msg[idx+2].upper() == "F":
 					
-					# Check if lock is being set
-					if idx+8 < len(msg) and msg[idx:idx+9].upper() == ">:FREEZE>":
+				# 	# Check if lock is being set
+				# 	if idx+8 < len(msg) and msg[idx:idx+9].upper() == ">:FREEZE>":
 						
-						# Set lock
-						lock_is_set = True
+				# 		# Set lock
+				# 		lock_is_set = True
 						
-						# Remove sequence
-						replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+8})
-						is_invalid = True # Call code "invalid" color code so it doesnt trigger color replacement
+				# 		# Remove sequence
+				# 		replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+8})
+				# 		is_invalid = True # Call code "invalid" color code so it doesnt trigger color replacement
 
 				else:
 					# Unrecognized code, do not modify
@@ -457,18 +482,18 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 					return_color = color_spec
 		
 		# Look for non-escaped <
-		elif msg[idx] == '<':
+		elif (not lock_is_set) and msg[idx] == '<':
 			
-			# Check if lock is being set
-			if idx+8 < len(msg) and msg[idx:idx+9].upper() == "<:FREEZE<":
+			# # Check if lock is being set
+			# if idx+8 < len(msg) and msg[idx:idx+9].upper() == "<:FREEZE<":
 				
-				# Set lock
-				lock_is_set = False
+			# 	# Set lock
+			# 	lock_is_set = False
 				
-				# Remove sequence
-				replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+8})
-			elif (not lock_is_set):
-				replacements.append({'text': return_color, 'idx_start': idx, 'idx_end': idx})
+			# 	# Remove sequence
+			# 	replacements.append({'text': '', 'idx_start': idx, 'idx_end': idx+8})
+			# elif :
+			replacements.append({'text': return_color, 'idx_start': idx, 'idx_end': idx})
 		
 		# Increment counter
 		idx += 1
