@@ -434,7 +434,7 @@ def main():
 					idx += 1
 					do_search = True
 				
-				elif words[idx].str == "-cc" or words[idx].str == "--andcontains":
+				elif words[idx].str == "-k" or words[idx].str == "--andcontains":
 					
 					# Verify argument is present
 					if idx+1 >= len(words):
