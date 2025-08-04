@@ -32,3 +32,6 @@ lumber = "pylogfile.scripts.lumberjack:main"
 
 [tool.setuptools.package-data]
 lumber_help = ["pylogfile.scripts.assets.lumperjack_help.json"]
+
+[project.license]
+file = "LICENSE"
