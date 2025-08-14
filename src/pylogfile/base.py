@@ -10,6 +10,7 @@ from colorama import Fore, Style, Back
 import numpy as np
 import h5py
 import threading
+import sys
 
 #TODO: Save only certain log levels
 #TODO: Autosave
@@ -506,6 +507,25 @@ def markdown(msg:str, str_fmt:LogFormat=None) -> str:
 	return rich_msg
 		
 
+def mdprint(x:str, flush:bool=False, file=sys.stdout, end:str='\n', str_fmt:LogFormat=None) -> None:
+	''' Calls print using markdown syntax.
+	
+	Args:
+		x (str): String to print. Unlike the standard print function, x must be a string.
+		flush (bool): (Optional) Sets if output is flushed immediately. Default=False.
+		file: (Optional) file-like object to which the output should be written. Default is
+			sys.stdout.
+		end (str): (Optional) Defines what is printed at the end of the output. Default is
+			newline.
+		str_fmt (LogFormat): (Optional) Markdown format options.
+	
+	Returns
+		None
+	'''
+	
+	s = markdown(x, str_fmt=str_fmt)
+	print(s, flush=flush, file=file, end=end)
+	
 class LogPile:
 	"""
 	Organizes a collection of LogEntries and creates new ones. All functions
