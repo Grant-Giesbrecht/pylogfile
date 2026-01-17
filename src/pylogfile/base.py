@@ -55,6 +55,51 @@ def _epoch_ns_to_datetime(ns: int) -> datetime:
 	sec, nsec = divmod(int(ns), 1_000_000_000)
 	return datetime.datetime.fromtimestamp(sec, tz=datetime.timezone.utc).replace(microsecond=nsec // 1000)
 
+class UnknownLogFileFormat(ValueError):
+	pass
+
+def _detect_pylogfile_hdf_format(fh: h5py.File) -> str:
+	"""
+	Return one of: "compressed", "legacy"
+	Raise UnknownLogFileFormat if it doesn't look like either.
+	"""
+	
+	# ---- New format: explicit metadata ----
+	if "_file_info_" in fh:
+		mfi = fh["_file_info_"]
+		file_standard = mfi.attrs.get("file_standard", None)
+		encoding = mfi.attrs.get("encoding", None)
+
+		# Strong positive ID for your format
+		if file_standard == "pylogfile.logpile":
+			if encoding == "compressed":
+				return "1.0"
+			# If you later add other encodings, handle them here.
+			# For now, if it's your standard but not compressed, treat as legacy-ish.
+			return "0.0"
+	
+	# ---- Heuristic detection for old format ----
+	# Your old saver wrote:
+	# /logs/message, /logs/detail, /logs/timestamp, /logs/level
+	if "logs" in fh:
+		g = fh["logs"]
+		legacy_keys = {"message", "detail", "timestamp", "level"}
+		if legacy_keys.issubset(set(g.keys())):
+			return "0.0"
+
+		# Your compressed format has these:
+		compressed_keys = {
+			"message_table", "detail_table",
+			"message_id", "detail_id",
+			"timestamp_ns", "level",
+		}
+		if compressed_keys.issubset(set(g.keys())):
+			return "1.0"
+	
+	raise UnknownLogFileFormat(
+		"Unrecognized HDF5 layout: not a pylogfile legacy or compressed log file."
+	)
+
 class SortConditions:
 	""" Class used to define the conditions of a LogEntry sort request."""
 	
@@ -883,7 +928,32 @@ class LogPile:
 		
 		return all_success
 	
-	def save_hdf(self, save_filename):
+	def save_plf(self, filename:str, file_version:str="1.0"):
+		""" Saves the log data to a PLF file.
+		
+		Parameters:
+			filename (str): File to save
+			file_version (str): File version to save. Options are 0.0 and 1.0.
+		
+		"""
+		
+		if file_version == "1.0":
+			return self._save_v1_plf(filename)
+		elif file_version == "0.0":
+			return self._save_v0_plf(filename)
+		else: # Default to newest version
+			return self._save_v1_plf(filename)
+	
+	def save_hdf(self, save_filename:str):
+		'''
+		Save the LogPile data to an HDF file. This function is being renamed to
+		_save_v0_plf, which is itself called by save_plf.
+		'''
+		
+		print(f"WARNING: This function is deprecated and will be removed. Replace with save_plf.")
+		self.save_plf(save_filename=save_filename)
+	
+	def _save_v0_plf(self, save_filename):
 		"""
 		Saves all logs to an HDF5 file.
 		
@@ -919,7 +989,7 @@ class LogPile:
 			fh['logs'].create_dataset('timestamp', data=timestamp_list)
 			fh['logs'].create_dataset('level', data=level_list)
 
-	def save_compressed_hdf(self, save_filename):
+	def _save_v1_plf(self, save_filename):
 		ad = self.to_dict()
 		
 		# Pull columns
@@ -1041,9 +1111,9 @@ class LogPile:
 			# # Optional: store metadata for humans
 			# g.attrs["timestamp_unit"] = "ns"
 	
-	def load_compressed_hdf(self, filename: str, clear_previous:bool=True):
+	def _load_v1_plf(self, filename: str, clear_previous:bool=True):
 		"""
-		Load logs from a compressed pylogfile LogPile HDF5 file created by save_compressed_hdf().
+		Load logs from the updated compressed pylogfile LogPile HDF5 file created by save_compressed_hdf().
 		
 		This populates the current LogPile instance (clears existing logs) and returns self.
 		
@@ -1154,46 +1224,8 @@ class LogPile:
 				# 	all_success = False
 		
 		return True
-		
-		# # --- Put logs into this LogPile ---
-		# # I don't know your internal storage API, so use the safest approach:
-		# # rebuild via add()/append() if you have it; otherwise populate from_dict/to_dict contract.
-		# #
-		# # Preferred: if you have a method like `self.clear()` and `self.add(...)`, use it.
-		# #
-		# # Fallback: set from dict list, if you already have a `from_dict` method.
-		# reconstructed = []
-		# for msg, det, ts, lv in zip(messages, details, timestamps, levels):
-		# 	reconstructed.append({
-		# 		"message": msg,
-		# 		"detail": det,
-		# 		"timestamp": ts,   # or ts.isoformat(sep=" ")
-		# 		"level": lv,       # or level_to_str(lv)
-		# 	})
-		# 
-		# # If you have a from_dict method, this is ideal:
-		# if hasattr(self, "from_dict") and callable(getattr(self, "from_dict")):
-		# 	self.from_dict(reconstructed)
-		# else:
-		# 	# Otherwise, try common patterns. Adjust to your codebase.
-		# 	if hasattr(self, "clear") and callable(getattr(self, "clear")):
-		# 		self.clear()
-		# 	if hasattr(self, "add") and callable(getattr(self, "add")):
-		# 		for de in reconstructed:
-		# 			self.add(
-		# 				de["message"],
-		# 				de["detail"],
-		# 				de["timestamp"],
-		# 				de["level"],
-		# 			)
-		# 	elif hasattr(self, "append") and callable(getattr(self, "append")):
-		# 		for de in reconstructed:
-		# 			self.append(de)
-		# 	else:
-		# 		# Last resort: stash raw dicts (you should replace this with your real internal field)
-		# 		setattr(self, "_logs", reconstructed)
 	
-	def load_hdf(self, read_filename:str, clear_previous:bool=True):
+	def _load_v0_plf(self, read_filename:str, clear_previous:bool=True):
 		"""
 		Reads logs from an HDF5 file.
 		
@@ -1236,6 +1268,29 @@ class LogPile:
 		
 		return all_success
 			
+	def load_hdf(self, read_filename:str, clear_previous:bool=True):
+		
+		print(f"WARNING: This function is deprecated and will be removed. Replace with load_plf.")
+		self.load_plf(read_filename, clear_previous)
+	
+	def load_plf(self, filename:str, clear_previous:bool=True):
+		"""
+		Load *any* pylogfile LogPile HDF5 file (legacy or compressed) by auto-detecting format.
+		Returns self.
+		"""
+		
+		with h5py.File(filename, "r") as fh:
+			fmt = _detect_pylogfile_hdf_format(fh)
+
+		# Re-open inside the chosen loader (simpler; avoids keeping handles around)
+		if fmt == "1.0":
+			return self._load_v1_plf(filename)
+		elif fmt == "0.0":
+			# rename your old loader to this:
+			return self._load_v0_plf(filename)
+
+		# Should never happen
+		raise UnknownLogFileFormat(f"Internal error: unknown format tag {fmt!r}")
 	
 	#TODO: Implement or remove this
 	def save_txt(self):
