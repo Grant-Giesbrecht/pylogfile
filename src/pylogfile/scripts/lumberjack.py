@@ -217,11 +217,11 @@ def main():
 	filename = args.filename
 	
 	# Read file
-	if filename[-4:].upper() == ".HDF":
-		if not log.load_hdf(filename):
+	if filename[-4:].upper() == ".HDF" or filename[-4:].upper() == ".PLF":
+		if not log.load_plf(filename):
 			print("\tFailed to read HDF")
 	elif filename[-5:].upper() == ".JSON":
-		if not log.load_hdf(filename):
+		if not log.load_plf(filename):
 			print("\tFailed to read JSON file.")
 	
 	# Show all logs if requested
