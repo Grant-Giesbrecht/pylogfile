@@ -26,6 +26,29 @@ WARNING = 30 	# Warning for software
 ERROR = 40		# Software error
 CRITICAL = 50	# Critical error
 
+def _to_epoch_ns(x) -> int:
+	# 1) Already numeric? Treat as seconds unless it's obviously ns.
+	if isinstance(x, (int, np.integer)):
+		# Heuristic: if it's > 1e14 it's probably already ns
+		return int(x) if x > 10**14 else int(x) * 1_000_000_000
+	if isinstance(x, (float, np.floating)):
+		return int(float(x) * 1_000_000_000)
+
+	# 2) datetime object?
+	if isinstance(x, datetime.datetime):
+		dt = x
+	else:
+		# 3) string parse
+		s = str(x).strip()
+		# fromisoformat handles "YYYY-MM-DD HH:MM:SS.ffffff" and many ISO strings
+		dt = datetime.datetime.fromisoformat(s)
+
+	# If naive, assume local time; if aware, use its tzinfo.
+	if dt.tzinfo is None:
+		dt = dt.replace(tzinfo=datetime.timezone.utc)  # or local timezone if you prefer
+
+	return int(dt.timestamp() * 1_000_000_000)
+
 class SortConditions:
 	""" Class used to define the conditions of a LogEntry sort request."""
 	
@@ -826,6 +849,129 @@ class LogPile:
 			fh['logs'].create_dataset('detail', data=detail_list)
 			fh['logs'].create_dataset('timestamp', data=timestamp_list)
 			fh['logs'].create_dataset('level', data=level_list)
+
+	def save_compressed_hdf(self, save_filename):
+		ad = self.to_dict()
+		
+		# Pull columns
+		messages  = [de.get("message", "") for de in ad]
+		details   = [de.get("detail",  "") for de in ad]
+		levels    = [str_to_level(de.get("level",   0))  for de in ad]
+		timestamps = [de.get("timestamp", 0) for de in ad]
+
+		# ---- Ensure timestamp is compact ----
+		# If timestamps are already numeric (recommended): keep as int64.
+		# If they're datetime objects, convert to int64 ns.
+		# If they're ISO strings, consider converting BEFORE this point.
+		ts = np.fromiter((_to_epoch_ns(t) for t in timestamps), dtype=np.int64, count=len(timestamps))
+
+
+		# ---- Dictionary-encode repeating strings ----
+		# message table
+		msg_to_id = {}
+		msg_ids = np.empty(len(messages), dtype=np.int32)
+		msg_table = []
+		for i, s in enumerate(messages):
+			# normalize to str
+			if s is None:
+				s = ""
+			else:
+				s = str(s)
+			
+			# Check if message is new or prev. recorded
+			j = msg_to_id.get(s)
+			
+			# If message is new, add to table
+			if j is None:
+				j = len(msg_table)
+				msg_to_id[s] = j
+				msg_table.append(s)
+			
+			# Add ID to list of IDs
+			msg_ids[i] = j
+
+		# detail table
+		det_to_id = {}
+		det_ids = np.empty(len(details), dtype=np.int32)
+		det_table = []
+		for i, s in enumerate(details):
+			if s is None:
+				s = ""
+			else:
+				s = str(s)
+			j = det_to_id.get(s)
+			if j is None:
+				j = len(det_table)
+				det_to_id[s] = j
+				det_table.append(s)
+			det_ids[i] = j
+		
+		lvl = np.asarray(levels, dtype=np.int16)
+		
+		# ---- Write file with compression ----
+		# gzip gives best size; lzf is faster. shuffle often helps gzip.
+		compression = "gzip"
+		compression_opts = 6
+		shuffle = True
+		
+		# Chunk by rows; pick something reasonable for append/read patterns.
+		n = len(ad)
+		chunk_rows = min(max(1024, n // 100 if n else 1024), 16384)
+		
+		# Use UTF-8 variable-length strings for tables
+		str_dt = h5py.string_dtype(encoding="utf-8")
+		
+		# Write file
+		with h5py.File(save_filename, "w") as fh:
+			
+			mfi = fh.create_group("_file_info_")
+			mfi.attrs["file_standard"] = "pylogfile.logpile"
+			mfi.attrs["format_version"] = "1.0"
+			mfi.attrs["encoding"] = "compressed"
+			
+			mfi.attrs["compression"] = compression
+			mfi.attrs["compression_opts"] = compression_opts
+			mfi.attrs["shuffle"] = shuffle
+			
+			g = fh.create_group("logs")
+			
+			# Tables of unique strings (usually small)
+			g.create_dataset(
+				"message_table", data=np.asarray(msg_table, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
+			)
+			g.create_dataset(
+				"detail_table", data=np.asarray(det_table, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
+			)
+			
+			# Per-log columns (highly compressible)
+			g.create_dataset(
+				"message_id", data=msg_ids,
+				compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=(chunk_rows,)
+			)
+			g.create_dataset(
+				"detail_id", data=det_ids,
+				compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=(chunk_rows,)
+			)
+			g.create_dataset(
+				"timestamp_ns", data=ts,
+				compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=(chunk_rows,)
+			)
+			g.create_dataset(
+				"level", data=lvl,
+				compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=(chunk_rows,)
+			)
+			
+			# # Optional: store metadata for humans
+			# g.attrs["timestamp_unit"] = "ns"
+	
 	
 	def load_hdf(self, read_filename:str, clear_previous:bool=True):
 		"""
