@@ -49,6 +49,12 @@ def _to_epoch_ns(x) -> int:
 
 	return int(dt.timestamp() * 1_000_000_000)
 
+def _epoch_ns_to_datetime(ns: int) -> datetime:
+	"""Convert int64 epoch nanoseconds to an aware UTC datetime."""
+	# Avoid float precision loss for large ns by using integer arithmetic
+	sec, nsec = divmod(int(ns), 1_000_000_000)
+	return datetime.datetime.fromtimestamp(sec, tz=datetime.timezone.utc).replace(microsecond=nsec // 1000)
+
 class SortConditions:
 	""" Class used to define the conditions of a LogEntry sort request."""
 	
@@ -120,6 +126,69 @@ def str_to_level(lvl:str) -> int:
 		return CRITICAL
 	else:
 		return False
+
+def level_to_str(lvl:int) -> str:
+	"""
+	Converts a log level int to its associated string code.
+	
+	Args:
+		lvl (int): Log level int
+	
+	Returns:
+		int: The log level string code
+	"""
+	
+	# Set level
+	if lvl == LOWDEBUG:
+		return "LOWDEBUG"
+	elif lvl == DEBUG:
+		return "DEBUG"
+	elif lvl == RECORD:
+		return "RECORD"
+	elif lvl == INFO:
+		return "INFO"
+	elif lvl == CORE:
+		return "CORE"
+	elif lvl == WARNING:
+		return "WARNING"
+	elif lvl == ERROR:
+		return "ERROR"
+	elif lvl == CRITICAL:
+		return "CRITICAL"
+	else:
+		return False
+
+def are_equivalent_entries(log1:LogEntry, log2:LogEntry, time_tol_us:float=10):
+	'''
+	Compares two LogEntry objects. Returns true if they contain equivalent data.
+	'''
+	
+	if log1.message != log2.message:
+		return False
+	if log1.detail != log2.detail:
+		return False
+	if log1.level != log2.level:
+		return False
+	
+	tol = datetime.timedelta(microseconds=time_tol_us)
+	if abs(log1.timestamp - log2.timestamp) > tol:
+		return False
+	
+	return True
+
+def are_equivalent_piles(lp1:LogPile, lp2:LogPile, time_tol_us:float=10):
+	"""
+	Compares two LogPile objects. Returns true if they contain equivalent logs.
+	"""
+	
+	if len(lp1.logs) != len(lp2.logs):
+		return False
+	
+	for idx, l in enumerate(lp1.logs):
+		if not are_equivalent_entries(l, lp2.logs[idx]):
+			return False
+	
+	return True
 
 class LogEntry:
 	""" Defines a single entry in the log. Contains log messages, levels, additional
@@ -972,6 +1041,157 @@ class LogPile:
 			# # Optional: store metadata for humans
 			# g.attrs["timestamp_unit"] = "ns"
 	
+	def load_compressed_hdf(self, filename: str, clear_previous:bool=True):
+		"""
+		Load logs from a compressed pylogfile LogPile HDF5 file created by save_compressed_hdf().
+		
+		This populates the current LogPile instance (clears existing logs) and returns self.
+		
+		Expected layout:
+		/_file_info_  (group with attrs)
+		/logs/message_table, /logs/detail_table (string tables)
+		/logs/message_id, /logs/detail_id, /logs/timestamp_ns, /logs/level (columns)
+		"""
+		
+		with h5py.File(filename, "r") as fh:
+			# --- Validate file identity / version (best-effort, but strict by default) ---
+			if "_file_info_" not in fh:
+				raise ValueError("Not a pylogfile compressed LogPile file: missing '/_file_info_'.")
+			mfi = fh["_file_info_"]
+			
+			file_standard = mfi.attrs.get("file_standard", None)
+			encoding = mfi.attrs.get("encoding", None)
+			fmt_ver = mfi.attrs.get("format_version", None)
+			
+			if file_standard != "pylogfile.logpile":
+				raise ValueError(f"Unsupported file_standard={file_standard!r}.")
+			if encoding != "compressed":
+				raise ValueError(f"Unsupported encoding={encoding!r} (expected 'compressed').")
+			# If you want to support multiple versions later, loosen this check.
+			if fmt_ver not in ("1.0", 1.0):
+				raise ValueError(f"Unsupported format_version={fmt_ver!r}.")
+			
+			if "logs" not in fh:
+				raise ValueError("Invalid file: missing '/logs' group.")
+			g = fh["logs"]
+			
+			# --- Load required datasets ---
+			required = [
+				"message_table", "detail_table",
+				"message_id", "detail_id",
+				"timestamp_ns", "level",
+			]
+			missing = [k for k in required if k not in g]
+			if missing:
+				raise ValueError(f"Invalid file: missing datasets in '/logs': {missing}")
+			
+			msg_table = g["message_table"][...]
+			det_table = g["detail_table"][...]
+			msg_id = g["message_id"][...]
+			det_id = g["detail_id"][...]
+			ts_ns = g["timestamp_ns"][...]
+			lvl = g["level"][...]
+			
+			# --- Basic shape sanity ---
+			n = len(msg_id)
+			if not (len(det_id) == len(ts_ns) == len(lvl) == n):
+				raise ValueError(
+					"Invalid file: column lengths differ "
+					f"(message_id={len(msg_id)}, detail_id={len(det_id)}, "
+					f"timestamp_ns={len(ts_ns)}, level={len(lvl)})."
+				)
+			
+			# --- Decode tables to Python str (h5py may return bytes depending on dtype) ---
+			def _to_str_array(a):
+				# a may be dtype=object bytes, numpy bytes_, or str
+				out = []
+				for x in a:
+					if isinstance(x, (bytes, np.bytes_)):
+						out.append(x.decode("utf-8", errors="replace"))
+					else:
+						out.append(str(x))
+				return out
+			
+			msg_table_py = _to_str_array(msg_table)
+			det_table_py = _to_str_array(det_table)
+			
+			# --- Bounds check IDs (defensive; avoids IndexError with corrupted files) ---
+			if n:
+				if msg_id.min() < 0 or msg_id.max() >= len(msg_table_py):
+					raise ValueError("Invalid file: message_id contains out-of-range indices.")
+				if det_id.min() < 0 or det_id.max() >= len(det_table_py):
+					raise ValueError("Invalid file: detail_id contains out-of-range indices.")
+			
+			# --- Reconstruct per-record fields ---
+			messages = [msg_table_py[int(i)] for i in msg_id]
+			details = [det_table_py[int(i)] for i in det_id]
+
+			# Levels: you stored int16 already (via str_to_level(...)).
+			# If you have a level_to_str helper, you can optionally decode later.
+			levels = [ level_to_str(int(x)) for x in lvl]
+			
+			# Timestamps: you stored epoch ns. Convert to datetime (UTC).
+			# If your LogEntry expects a string timestamp instead, swap this to .isoformat().
+			timestamps = [_epoch_ns_to_datetime(x) for x in ts_ns]
+		
+		with self.log_mutex:
+			
+			# Clear old logs
+			if clear_previous:
+				self.logs = []
+			
+			# Convert to dictionary
+			for nm,nd,nt,nl in zip(messages, details, timestamps, levels):
+				
+				# Create dictionary
+				dd = {'message': nm, 'detail':nd, 'timestamp': str(nt.strftime('%Y-%m-%d %H:%M:%S.%f')), 'level':nl}
+				
+				# Create LogEntry
+				nl = LogEntry(message=nm, detail=nd)
+				if nl.init_dict(dd):
+					self.logs.append(nl)
+				# else:
+				# 	all_success = False
+		
+		return True
+		
+		# # --- Put logs into this LogPile ---
+		# # I don't know your internal storage API, so use the safest approach:
+		# # rebuild via add()/append() if you have it; otherwise populate from_dict/to_dict contract.
+		# #
+		# # Preferred: if you have a method like `self.clear()` and `self.add(...)`, use it.
+		# #
+		# # Fallback: set from dict list, if you already have a `from_dict` method.
+		# reconstructed = []
+		# for msg, det, ts, lv in zip(messages, details, timestamps, levels):
+		# 	reconstructed.append({
+		# 		"message": msg,
+		# 		"detail": det,
+		# 		"timestamp": ts,   # or ts.isoformat(sep=" ")
+		# 		"level": lv,       # or level_to_str(lv)
+		# 	})
+		# 
+		# # If you have a from_dict method, this is ideal:
+		# if hasattr(self, "from_dict") and callable(getattr(self, "from_dict")):
+		# 	self.from_dict(reconstructed)
+		# else:
+		# 	# Otherwise, try common patterns. Adjust to your codebase.
+		# 	if hasattr(self, "clear") and callable(getattr(self, "clear")):
+		# 		self.clear()
+		# 	if hasattr(self, "add") and callable(getattr(self, "add")):
+		# 		for de in reconstructed:
+		# 			self.add(
+		# 				de["message"],
+		# 				de["detail"],
+		# 				de["timestamp"],
+		# 				de["level"],
+		# 			)
+		# 	elif hasattr(self, "append") and callable(getattr(self, "append")):
+		# 		for de in reconstructed:
+		# 			self.append(de)
+		# 	else:
+		# 		# Last resort: stash raw dicts (you should replace this with your real internal field)
+		# 		setattr(self, "_logs", reconstructed)
 	
 	def load_hdf(self, read_filename:str, clear_previous:bool=True):
 		"""
