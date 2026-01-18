@@ -267,7 +267,7 @@ def main():
 			
 			# Get level int
 			lvl_str = words[1].str.upper()
-			lvl_int = str_to_level(lvl_str)
+			lvl_int = str_to_level(lvl_str, log.log_levels)
 			if lvl_int is None:
 				print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 				continue
@@ -283,7 +283,7 @@ def main():
 			
 			# Get level int
 			lvl_str = words[1].upper()
-			lvl_int = str_to_level(lvl_str)
+			lvl_int = str_to_level(lvl_str, log.log_levels)
 			if lvl_int is None:
 				print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 				continue
@@ -394,7 +394,7 @@ def main():
 					
 					# Get level int
 					lvl_str = words[idx+1].str.upper()
-					lvl_int = str_to_level(lvl_str)
+					lvl_int = str_to_level(lvl_str, log.log_levels)
 					if lvl_int is None:
 						print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 						idx += 1
@@ -413,7 +413,7 @@ def main():
 					
 					# Get level int
 					lvl_str = words[idx+1].str.upper()
-					lvl_int = str_to_level(lvl_str)
+					lvl_int = str_to_level(lvl_str, log.log_levels)
 					if lvl_int is None:
 						print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 						idx += 1

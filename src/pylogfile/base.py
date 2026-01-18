@@ -14,9 +14,7 @@ import sys
 
 #TODO: Save only certain log levels
 #TODO: Autosave
-
-RECORD = -25
-CORE = -30
+#TODO: Save log_level list to file
 
 NOTSET = 0
 LOWDEBUG = 5	# For when you're having a really bad day
@@ -118,7 +116,6 @@ class DummyMutex:
 	def __exit__(self, exc_type, exc_value, traceback):
 		return
 
-#TODO: Make the keys in color_overrides match the variables in LogEntry (currently undefined)
 @dataclass
 class LogFormat:
 	""" Class used to describe the cosmetic formatting of LogEntries printed to 
@@ -138,7 +135,7 @@ class LogFormat:
 	detail_indent:str = "\t "
 	strip_newlines:bool = True
 
-def str_to_level(lvl:str) -> int:
+def str_to_level(lvl:str, level_list:list) -> int:
 	"""
 	Converts a log level string to its associated int code.
 	
@@ -146,61 +143,31 @@ def str_to_level(lvl:str) -> int:
 		lvl (str): Log level string, case-insensitive
 	
 	Returns:
-		int: The log level int code
+		int: The log level int code. Returns -1 if not found.
 	"""
 	
-	lvl = lvl.upper()
+	idx = find_level_in_list(lvl, level_list)
+	if idx is None:
+		return -1
 	
-	# Set level
-	if lvl == "LOWDEBUG":
-		return LOWDEBUG
-	elif lvl == "DEBUG":
-		return DEBUG
-	elif lvl == "RECORD":
-		return RECORD
-	elif lvl == "INFO":
-		return INFO
-	elif lvl == "CORE":
-		return CORE
-	elif lvl == "WARNING":
-		return WARNING
-	elif lvl == "ERROR":
-		return ERROR
-	elif lvl == "CRITICAL":
-		return CRITICAL
-	else:
-		return False
+	return level_list[idx].level_int
 
-def level_to_str(lvl:int) -> str:
+def level_to_str(lvl:int, level_list:list) -> str:
 	"""
 	Converts a log level int to its associated string code.
 	
 	Args:
-		lvl (int): Log level int
+		lvl (str): Log level string
 	
 	Returns:
-		int: The log level string code
+		str: The log level string code
 	"""
 	
-	# Set level
-	if lvl == LOWDEBUG:
-		return "LOWDEBUG"
-	elif lvl == DEBUG:
-		return "DEBUG"
-	elif lvl == RECORD:
-		return "RECORD"
-	elif lvl == INFO:
-		return "INFO"
-	elif lvl == CORE:
-		return "CORE"
-	elif lvl == WARNING:
-		return "WARNING"
-	elif lvl == ERROR:
-		return "ERROR"
-	elif lvl == CRITICAL:
-		return "CRITICAL"
-	else:
-		return False
+	idx = find_level_in_list(lvl, level_list)
+	if idx is None:
+		return -1
+	
+	return level_list[idx].level_name
 
 def are_equivalent_entries(log1:LogEntry, log2:LogEntry, time_tol_us:float=10):
 	'''
@@ -293,14 +260,7 @@ class LogEntry:
 	
 	def init_dict(self, data_dict:dict) -> bool:
 		"""
-		Initializes a provided dictionary with the data from the LogEntry. Used when
-		preparing to save logs to file.
-		
-		Parameters:
-			data_dict (dict): Dictionary to populate with data
-			
-		Returns:
-			(bool): Success status in converting class contents to dict
+		Initializes from a provided dictionar.
 		"""
 		
 		# Extract data from dict
@@ -313,42 +273,17 @@ class LogEntry:
 			return False
 		
 		# Set level
-		self.level = str_to_level(lvl)
-		if self.level is None:
-			return False
+		try:
+			lvl = int(lvl)
+		except:
+			print(f"Failed to initialize log entry from dictionary. Could not convert level to int.")
+		self.level = lvl
 		
 		self.message = msg # Set message
 		self.detail = dtl
 		self.timestamp = datetime.datetime.strptime(ts, '%Y-%m-%d %H:%M:%S.%f')
 		
 		return True
-	
-	def get_level_str(self) -> str:
-		"""
-		Converts the log's level to a string
-		
-		Returns:
-			(str): Log level represented as a string.
-		"""
-		
-		if self.level == LOWDEBUG:
-			return "LOWDEBUG"
-		elif self.level == DEBUG:
-			return "DEBUG"
-		elif self.level == RECORD:
-			return "RECORD"
-		elif self.level == INFO:
-			return "INFO"
-		elif self.level == CORE:
-			return "CORE"
-		elif self.level == WARNING:
-			return "WARNING"
-		elif self.level == ERROR:
-			return "ERROR"
-		elif self.level == CRITICAL:
-			return "CRITICAL"
-		else:
-			return "??"
 		
 	def get_dict(self) -> dict:
 		""" Returns the contents of the log as a dictionary.
@@ -356,7 +291,7 @@ class LogEntry:
 		Returns:
 			(dict): Dictionary containing log entry data
 		"""
-		return {"message":self.message, "detail":self.detail, "timestamp":str(self.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')) , "level":self.get_level_str()}
+		return {"message":self.message, "detail":self.detail, "timestamp":str(self.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')) , "level":self.level}
 	
 	def get_json(self) -> str:
 		"""
@@ -433,7 +368,7 @@ class LogEntry:
 			
 		
 		# Create base string
-		s = f"{c_alt}[{c_label}{self.get_level_str()}{c_alt}]{c_main} {markdown(message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
+		s = f"{c_alt}[{c_label}{level_to_str(self.level, level_list)}{c_alt}]{c_main} {markdown(message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
 		
 		# Add detail if requested
 		if str_fmt.show_detail and len(detail) > 0:
@@ -830,7 +765,7 @@ class LogPile:
 			None
 		"""
 		
-		self.terminal_level = str_to_level(level_str)
+		self.terminal_level = str_to_level(level_str, self.log_levels)
 	
 	def lowdebug(self, message:str, detail:str=""):
 		"""
@@ -1076,7 +1011,7 @@ class LogPile:
 		# Pull columns
 		messages  = [de.get("message", "") for de in ad]
 		details   = [de.get("detail",  "") for de in ad]
-		levels    = [str_to_level(de.get("level",   0))  for de in ad]
+		levels    = [str_to_level(de.get("level",   0), self.log_levels)  for de in ad]
 		timestamps = [de.get("timestamp", 0) for de in ad]
 
 		# ---- Ensure timestamp is compact ----
@@ -1279,7 +1214,7 @@ class LogPile:
 
 			# Levels: you stored int16 already (via str_to_level(...)).
 			# If you have a level_to_str helper, you can optionally decode later.
-			levels = [ level_to_str(int(x)) for x in lvl]
+			levels = [ level_to_str(int(x), self.log_levels) for x in lvl]
 			
 			# Timestamps: you stored epoch ns. Convert to datetime (UTC).
 			# If your LogEntry expects a string timestamp instead, swap this to .isoformat().
