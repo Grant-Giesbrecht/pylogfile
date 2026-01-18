@@ -122,20 +122,19 @@ class DummyMutex:
 @dataclass
 class LogFormat:
 	""" Class used to describe the cosmetic formatting of LogEntries printed to 
-	standard output. """
+	standard output. 
+	
+	To use color_overrides, provide a dictoinary that uses the format:
+	{<INT-LEVEL-CODE>:{<lowercase-string-markdown-color>:<colorama-color>}}
+	
+	For example, {10:{'main':Fore.GREEN}}
+	
+	"""
 	
 	show_detail:bool = False
 	use_color:bool = True
 	default_color:dict = field(default_factory=lambda: {"main": Fore.WHITE+Back.RESET, "bold": Fore.LIGHTBLUE_EX, "quiet": Fore.LIGHTBLACK_EX, "alt": Fore.YELLOW, "label": Fore.GREEN})
-	color_overrides:dict = field(default_factory=lambda: { LOWDEBUG: {"label": Fore.WHITE},
-														DEBUG: {"label": Fore.LIGHTBLACK_EX},
-														INFO: {},
-														WARNING: {"label": Fore.YELLOW},
-														ERROR: {"label": Fore.LIGHTRED_EX},
-														CRITICAL: {"label": Fore.RED},
-														RECORD: {"label": Fore.CYAN},
-														CORE: {"label": Fore.CYAN}
-	})
+	color_overrides:dict = field(default_factory=lambda: {})
 	detail_indent:str = "\t "
 	strip_newlines:bool = True
 
@@ -235,6 +234,23 @@ def are_equivalent_piles(lp1:LogPile, lp2:LogPile, time_tol_us:float=10):
 	
 	return True
 
+def find_level_in_list(level, level_list:list):
+	'''
+	Returns the index of the level object in the level_list which matches
+	the specified level, either as a string (level_name) or int (level_int)
+	'''
+	
+	if isinstance(level, str):
+		for idx, ll in enumerate(level_list):
+			if ll.level_name == level:
+				return idx
+	else:
+		for idx, ll in enumerate(level_list):
+			if ll.level_int == level:
+				return idx
+	
+	return None
+
 class LogEntry:
 	""" Defines a single entry in the log. Contains log messages, levels, additional
 	detail, etc. 
@@ -274,8 +290,6 @@ class LogEntry:
 		# Set message
 		self.message = message
 		self.detail = detail
-	
-
 	
 	def init_dict(self, data_dict:dict) -> bool:
 		"""
@@ -353,7 +367,7 @@ class LogEntry:
 		"""
 		return json.dumps(self.get_dict())
 	
-	def str(self, str_fmt:LogFormat=None) -> str:
+	def str(self, str_fmt:LogFormat=None, level_list:list=None) -> str:
 		""" Represent the log entry as a formatted string suitable for printing.
 		
 		Parameters:
@@ -369,13 +383,30 @@ class LogEntry:
 		
 		# Apply or wipe colors
 		if str_fmt.use_color:
+			
+			# Start with default colors
 			c_main = str_fmt.default_color['main']
 			c_bold = str_fmt.default_color['bold']
 			c_quiet = str_fmt.default_color['quiet']
 			c_alt = str_fmt.default_color['alt']
 			c_label = str_fmt.default_color['label']
 			
-			# Apply log-level color-overrides
+			# Apply level specific changes
+			if level_list is not None:
+				l_idx = find_level_in_list(self.level, level_list)
+				if l_idx is not None:
+					if level_list[l_idx].main_color is not None:
+						c_main = level_list[l_idx].main_color
+					if level_list[l_idx].bold_color is not None:
+						c_bold = level_list[l_idx].bold_color
+					if level_list[l_idx].quiet_color is not None:
+						c_quiet = level_list[l_idx].quiet_color
+					if level_list[l_idx].alt_color is not None:
+						c_alt = level_list[l_idx].alt_color
+					if level_list[l_idx].label_color is not None:
+						c_label = level_list[l_idx].label_color
+			
+			# Apply color-overrides
 			if self.level in str_fmt.color_overrides:
 				if 'main' in str_fmt.color_overrides[self.level]:
 					c_main = str_fmt.color_overrides[self.level]['main']
@@ -387,7 +418,7 @@ class LogEntry:
 					c_alt = str_fmt.color_overrides[self.level]['alt']
 				if 'label' in str_fmt.color_overrides[self.level]:
 					c_label = str_fmt.color_overrides[self.level]['label']
-				
+			
 		else:
 			c_main = ''
 			c_bold = ''
@@ -662,7 +693,38 @@ def mdprint(x:str, flush:bool=False, file=sys.stdout, end:str='\n', str_fmt:LogF
 	
 	s = markdown(x, str_fmt=str_fmt)
 	print(s, flush=flush, file=file, end=end)
+
+class LogLevelDefinition:
 	
+	def __init__(self, lvl_int:int, lvl_name:str, main_color:str=None, bold_color:str=None, quiet_color:str=None, alt_color:str=None, label_color:str=None):
+		
+		# Define level name string, and level int.
+		self.level_int = lvl_int
+		self.level_name = lvl_name
+		
+		# Define color overrides. If NONE, will use LogPile defaults.
+		self.main_color = main_color
+		self.bold_color = bold_color
+		self.quiet_color = quiet_color
+		self.alt_color = alt_color
+		self.label_color = label_color
+
+def get_default_levels():
+	"""
+	Creates default log levels.
+	"""
+	
+	log_levels = []
+	
+	log_levels.append(LogLevelDefinition(LOWDEBUG, "LOWDEBUG", label_color=Fore.LIGHTBLACK_EX))
+	log_levels.append(LogLevelDefinition(DEBUG, "DEBUG", label_color=Fore.LIGHTBLACK_EX))
+	log_levels.append(LogLevelDefinition(INFO, "INFO", label_color=Fore.GREEN))
+	log_levels.append(LogLevelDefinition(WARNING, "WARNING", label_color=Fore.YELLOW))
+	log_levels.append(LogLevelDefinition(ERROR, "ERROR", label_color=Fore.LIGHTRED_EX))
+	log_levels.append(LogLevelDefinition(CRITICAL, "CRITICAL", label_color=Fore.RED))
+	
+	return log_levels
+
 class LogPile:
 	"""
 	Organizes a collection of LogEntries and creates new ones. All functions
@@ -696,7 +758,7 @@ class LogPile:
 	TXT = "format-txt"
 	
 	#TODO: Implement autosave. and autosave settigns.  
-	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None, use_mutex:bool=True):
+	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None, use_mutex:bool=True, level_list:list=None):
 		"""
 		Constructor for LogPile class. 
 		
@@ -728,6 +790,25 @@ class LogPile:
 		self.log_mutex = None
 		self.run_mutex = None
 		self.set_enable_mutex(use_mutex)
+		
+		# Try to initialize log_levels from arguments
+		self.log_levels = None
+		if level_list is not None:
+			
+			_ll_valid = True
+			for li in level_list:
+				if not isinstance(li, LogLevelDefinition):
+					_ll_valid = False
+					break
+			
+			if _ll_valid:
+				self.log_levels = level_list
+		
+		# If log_level could not be init from arugments, use default
+		if self.log_levels is None:
+			
+			self.log_levels = get_default_levels()
+		
 	
 	def set_enable_mutex(self, enabled:bool):
 		
@@ -867,7 +948,7 @@ class LogPile:
 		# Print to terminal
 		if self.terminal_output_enable:
 			if nl.level >= self.terminal_level:
-				print(f"{nl.str(self.str_format)}{Style.RESET_ALL}")
+				print(f"{nl.str(self.str_format, self.log_levels)}{Style.RESET_ALL}")
 	
 	def to_dict(self):
 		"""
@@ -928,7 +1009,7 @@ class LogPile:
 		
 		return all_success
 	
-	def save_plf(self, filename:str, file_version:str="1.0"):
+	def save_plflog(self, filename:str, file_version:str="1.0"):
 		""" Saves the log data to a PLF file.
 		
 		Parameters:
@@ -938,11 +1019,11 @@ class LogPile:
 		"""
 		
 		if file_version == "1.0":
-			return self._save_v1_plf(filename)
+			return self._save_v1_plflog(filename)
 		elif file_version == "0.0":
-			return self._save_v0_plf(filename)
+			return self._save_v0_plflog(filename)
 		else: # Default to newest version
-			return self._save_v1_plf(filename)
+			return self._save_v1_plflog(filename)
 	
 	def save_hdf(self, save_filename:str):
 		'''
@@ -951,9 +1032,9 @@ class LogPile:
 		'''
 		
 		print(f"WARNING: This function is deprecated and will be removed. Replace with save_plf.")
-		self.save_plf(save_filename=save_filename)
+		self.save_plflog(save_filename=save_filename)
 	
-	def _save_v0_plf(self, save_filename):
+	def _save_v0_plflog(self, save_filename):
 		"""
 		Saves all logs to an HDF5 file.
 		
@@ -989,7 +1070,7 @@ class LogPile:
 			fh['logs'].create_dataset('timestamp', data=timestamp_list)
 			fh['logs'].create_dataset('level', data=level_list)
 
-	def _save_v1_plf(self, save_filename):
+	def _save_v1_plflog(self, save_filename):
 		ad = self.to_dict()
 		
 		# Pull columns
@@ -1111,7 +1192,7 @@ class LogPile:
 			# # Optional: store metadata for humans
 			# g.attrs["timestamp_unit"] = "ns"
 	
-	def _load_v1_plf(self, filename: str, clear_previous:bool=True):
+	def _load_v1_plflog(self, filename: str, clear_previous:bool=True):
 		"""
 		Load logs from the updated compressed pylogfile LogPile HDF5 file created by save_compressed_hdf().
 		
@@ -1225,7 +1306,7 @@ class LogPile:
 		
 		return True
 	
-	def _load_v0_plf(self, read_filename:str, clear_previous:bool=True):
+	def _load_v0_plflog(self, read_filename:str, clear_previous:bool=True):
 		"""
 		Reads logs from an HDF5 file.
 		
@@ -1271,9 +1352,9 @@ class LogPile:
 	def load_hdf(self, read_filename:str, clear_previous:bool=True):
 		
 		print(f"WARNING: This function is deprecated and will be removed. Replace with load_plf.")
-		self.load_plf(read_filename, clear_previous)
+		self.load_plflog(read_filename, clear_previous)
 	
-	def load_plf(self, filename:str, clear_previous:bool=True):
+	def load_plflog(self, filename:str, clear_previous:bool=True):
 		"""
 		Load *any* pylogfile LogPile HDF5 file (legacy or compressed) by auto-detecting format.
 		Returns self.
@@ -1284,10 +1365,10 @@ class LogPile:
 
 		# Re-open inside the chosen loader (simpler; avoids keeping handles around)
 		if fmt == "1.0":
-			return self._load_v1_plf(filename)
+			return self._load_v1_plflog(filename)
 		elif fmt == "0.0":
 			# rename your old loader to this:
-			return self._load_v0_plf(filename)
+			return self._load_v0_plflog(filename)
 
 		# Should never happen
 		raise UnknownLogFileFormat(f"Internal error: unknown format tag {fmt!r}")
@@ -1300,7 +1381,7 @@ class LogPile:
 	def begin_autosave(self):
 		pass
 	
-	def show_logs(self, min_level:int=DEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, str_fmt:LogFormat=None):
+	def show_logs(self, min_level:int=LOWDEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, str_fmt:LogFormat=None):
 		"""
 		Prints to standard output the logs matching the specified conditions.
 		
@@ -1357,9 +1438,9 @@ class LogPile:
 					idx_str = f"{Fore.WHITE}[{Fore.WHITE}{int(idx)}{Fore.WHITE}] "
 				
 				if str_fmt is None:
-					print(f"{idx_str}{lg.str(self.str_format)}{Style.RESET_ALL}")
+					print(f"{idx_str}{lg.str(self.str_format, self.log_levels)}{Style.RESET_ALL}")
 				else:
-					print(f"{idx_str}{lg.str(str_fmt)}{Style.RESET_ALL}")
+					print(f"{idx_str}{lg.str(str_fmt, self.log_levels)}{Style.RESET_ALL}")
 				
 				# Run counter if specified
 				if max_number is not None:

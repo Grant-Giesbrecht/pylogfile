@@ -11,7 +11,7 @@ log.error("This is an error!")
 log.critical("Oh no I'm dead XX", detail="asdfjklhasdfb jkasdfasdjkfasdkfjhasdjklg")
 print(f"\n\n")
 
-log.save_hdf("test.log.hdf")
+log.save_plflog("test.plflog")
 log.save_json("test.log.json")
 
 print(f"READING JSON")
