@@ -15,6 +15,8 @@ import sys
 #TODO: Save only certain log levels
 #TODO: Autosave
 #TODO: Save log_level list to file
+#NOTE: Currently, if info() or etc is called, and those levels are NOT defined, it will still record logs. It just saves them with a hard coded number. I think this is good?
+#TODO: Add validate() function to see if any logs have undefined log levels.
 
 NOTSET = 0
 LOWDEBUG = 5	# For when you're having a really bad day
@@ -631,7 +633,7 @@ def mdprint(x:str, flush:bool=False, file=sys.stdout, end:str='\n', str_fmt:LogF
 
 class LogLevelDefinition:
 	
-	def __init__(self, lvl_int:int, lvl_name:str, main_color:str=None, bold_color:str=None, quiet_color:str=None, alt_color:str=None, label_color:str=None):
+	def __init__(self, lvl_int:int, lvl_name:str, main_color:str="", bold_color:str="", quiet_color:str="", alt_color:str="", label_color:str=""):
 		
 		# Define level name string, and level int.
 		self.level_int = lvl_int
@@ -753,6 +755,20 @@ class LogPile:
 		else:
 			self.log_mutex = DummyMutex()
 			self.run_mutex = DummyMutex()
+	
+	def set_show_detail(self, show_detail:bool):
+		"""
+		Sets whether the detail string is displayed in addition to the
+		log message whenever logs are displayed.
+		
+		Parameters:
+			show_detail (bool): Enable/disable detail
+		
+		Returns:
+			None
+		"""
+		
+		self.str_format.show_detail = show_detail
 	
 	def set_terminal_level(self, level_str:str):
 		"""
