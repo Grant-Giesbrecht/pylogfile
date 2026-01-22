@@ -27,5 +27,17 @@ if not log3.load_plflog("test.plflog"):
 	print("\tFailed to read HDF")
 log3.show_logs()
 
+print(f"v0 Test")
+log.save_plflog("test_v0.plflog", file_version="0.0")
+
+log4 = LogPile(str_fmt=fmt)
+if not log4.load_plflog("test_v0.plflog"):
+	print("\tFailed to read HDF")
+log4.show_logs()
+
+# log5 = LogPile(str_fmt=fmt)
+# if not log5.load_plflog("DP1a_dd0B.log.hdf"):
+# 	print("\tFailed to read HDF")
+# log5.show_logs()
 
 # log3.make_level("new_debug", 14)

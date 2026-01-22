@@ -302,11 +302,13 @@ class LogEntry:
 		"""
 		return json.dumps(self.get_dict())
 	
-	def str(self, str_fmt:LogFormat=None, level_list:list=None) -> str:
+	def str(self, str_fmt:LogFormat=None, level_list:list=None, show_color_help:bool=False) -> str:
 		""" Represent the log entry as a formatted string suitable for printing.
 		
 		Parameters:
 			str_fmt (LogFormat): Format specification
+			show_color_help (bool): Prints each color to command line from each override level to 
+				help the user debug why logs appear in the color they do.
 		
 		Returns:
 			(str): String representation of class
@@ -1003,13 +1005,17 @@ class LogPile:
 		timestamp_list = []
 		level_list = []
 		
+		#NOTE: Unlike v1, v0 files cannot save default levels. As such, the objects
+		# level list is ignored in favor of the v0 defaults. 
+		default_levels = get_default_levels()
+		
 		# Create HDF data types
 		for de in ad:
 			
 			message_list.append(de['message'])
 			detail_list.append(de['detail'])
 			timestamp_list.append(de['timestamp'])
-			level_list.append(de['level'])
+			level_list.append( level_to_str( de['level'], default_levels) )
 		
 		# Write file
 		with h5py.File(save_filename, 'w') as fh:
@@ -1026,7 +1032,6 @@ class LogPile:
 		messages  = [de.get("message", "") for de in ad]
 		details   = [de.get("detail",  "") for de in ad]
 		levels    = [str_to_level(de.get("level",   0), self.log_levels)  for de in ad]
-		print(f"levels to save: {levels}, {type(levels[0])}")
 		timestamps = [de.get("timestamp", 0) for de in ad]
 
 		# ---- Ensure timestamp is compact ----
@@ -1128,7 +1133,6 @@ class LogPile:
 			)
 			
 			# Per-log columns (highly compressible)
-			print(f"len({len(msg_ids)}), chunk={chunk_rows}")
 			try:
 				g.create_dataset(
 					"message_id", data=msg_ids,
@@ -1387,19 +1391,23 @@ class LogPile:
 			detail_list = fh['logs']['detail'][()]
 			timestamp_list = fh['logs']['timestamp'][()]
 			level_list = fh['logs']['level'][()]
-		
+			
 		with self.log_mutex:
 			
 			# Clear old logs
 			if clear_previous:
 				self.logs = []
 			
+			#v0 files dont suppport custom log levels, so the default is always used.
+			self.log_levels = get_default_levels()
+			
 			# Convert to dictionary
 			for nm,nd,nt,nl in zip(message_list, detail_list, timestamp_list, level_list):
 				
 				# Create dictionary
 				
-				dd = {'message': nm.decode('utf-8'), 'detail':nd.decode('utf-8'), 'timestamp': nt.decode('utf-8'), 'level':nl.decode('utf-8')}
+				# Note that unlike saving a v1+ file, the levels are saved as a string, not an int. They must be translated.
+				dd = {'message': nm.decode('utf-8'), 'detail':nd.decode('utf-8'), 'timestamp': nt.decode('utf-8'), 'level': str_to_level(nl.decode('utf-8'), self.log_levels)}
 				
 				# Create LogEntry
 				nl = LogEntry(message=nm, detail=nd)
@@ -1407,8 +1415,6 @@ class LogPile:
 					self.logs.append(nl)
 				else:
 					all_success = False
-		
-		self.log_levels = get_default_levels()
 		
 		return all_success
 			
@@ -1478,7 +1484,6 @@ class LogPile:
 			for idx, lg in zip(idx_list, log_list):
 				
 				# Check log level
-				print(f"{type(lg.level)} < {type(min_level)} ?")
 				if lg.level < min_level or lg.level > max_level:
 					continue
 				
