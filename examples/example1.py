@@ -12,20 +12,20 @@ log.critical("Oh no I'm dead XX", detail="asdfjklhasdfb jkasdfasdjkfasdkfjhasdjk
 print(f"\n\n")
 
 log.save_plflog("test.plflog")
-log.save_json("test.log.json")
+# log.save_json("test.log.json")
 
-print(f"READING JSON")
-log2 = LogPile(str_fmt=fmt)
-if not log2.load_json("test.log.json"):
-	print("Failed to read JSON")
-log2.show_logs()
-print(f"\n\n")
+# print(f"READING JSON")
+# log2 = LogPile(str_fmt=fmt)
+# if not log2.load_json("test.log.json"):
+# 	print("Failed to read JSON")
+# log2.show_logs()
+# print(f"\n\n")
 
 print(f"READING HDF")
 log3 = LogPile(str_fmt=fmt)
-if not log3.load_hdf("test.log.hdf"):
+if not log3.load_plflog("test.plflog"):
 	print("\tFailed to read HDF")
 log3.show_logs()
 
 
-log3.make_level("new_debug", 14)
+# log3.make_level("new_debug", 14)

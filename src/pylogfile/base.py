@@ -250,11 +250,8 @@ class LogEntry:
 		if message is None:
 			message = ""
 		
-		# Set level
-		if level not in [LOWDEBUG, DEBUG, INFO, WARNING, ERROR, CRITICAL]:
-			self.level = INFO
-		else:
-			self.level = level
+		# Set level (Saved as integer)
+		self.level = level
 		
 		# Set message
 		self.message = message
@@ -267,7 +264,7 @@ class LogEntry:
 		
 		# Extract data from dict
 		try:
-			lvl = data_dict['level']
+			lvl_src = data_dict['level']
 			msg = data_dict['message']
 			dtl = data_dict['detail']
 			ts = data_dict['timestamp']
@@ -276,9 +273,10 @@ class LogEntry:
 		
 		# Set level
 		try:
-			lvl = int(lvl)
+			lvl = int(lvl_src)
 		except:
-			print(f"Failed to initialize log entry from dictionary. Could not convert level to int.")
+			lvl = 0
+			print(f"Failed to initialize log entry from dictionary (value={lvl_src}). Could not convert level to int. Setting level to zero.")
 		self.level = lvl
 		
 		self.message = msg # Set message
@@ -1028,6 +1026,7 @@ class LogPile:
 		messages  = [de.get("message", "") for de in ad]
 		details   = [de.get("detail",  "") for de in ad]
 		levels    = [str_to_level(de.get("level",   0), self.log_levels)  for de in ad]
+		print(f"levels to save: {levels}, {type(levels[0])}")
 		timestamps = [de.get("timestamp", 0) for de in ad]
 
 		# ---- Ensure timestamp is compact ----
@@ -1092,6 +1091,16 @@ class LogPile:
 		# Use UTF-8 variable-length strings for tables
 		str_dt = h5py.string_dtype(encoding="utf-8")
 		
+		# ---- Log level definitions ----
+		level_defs = self.log_levels if self.log_levels is not None else []
+		level_ints = np.asarray([ld.level_int for ld in level_defs], dtype=np.int32)
+		level_names = ["" if ld.level_name is None else str(ld.level_name) for ld in level_defs]
+		level_main = ["" if ld.main_color is None else str(ld.main_color) for ld in level_defs]
+		level_bold = ["" if ld.bold_color is None else str(ld.bold_color) for ld in level_defs]
+		level_quiet = ["" if ld.quiet_color is None else str(ld.quiet_color) for ld in level_defs]
+		level_alt = ["" if ld.alt_color is None else str(ld.alt_color) for ld in level_defs]
+		level_label = ["" if ld.label_color is None else str(ld.label_color) for ld in level_defs]
+		
 		# Write file
 		with h5py.File(save_filename, "w") as fh:
 			
@@ -1119,25 +1128,86 @@ class LogPile:
 			)
 			
 			# Per-log columns (highly compressible)
-			g.create_dataset(
+			print(f"len({len(msg_ids)}), chunk={chunk_rows}")
+			try:
+				g.create_dataset(
+					"message_id", data=msg_ids,
+					compression=compression, compression_opts=compression_opts,
+					shuffle=shuffle, chunks=(chunk_rows,)
+				)
+				g.create_dataset(
+					"detail_id", data=det_ids,
+					compression=compression, compression_opts=compression_opts,
+					shuffle=shuffle, chunks=(chunk_rows,)
+				)
+				g.create_dataset(
+					"timestamp_ns", data=ts,
+					compression=compression, compression_opts=compression_opts,
+					shuffle=shuffle, chunks=(chunk_rows,)
+				)
+				g.create_dataset(
+					"level", data=lvl,
+					compression=compression, compression_opts=compression_opts,
+					shuffle=shuffle, chunks=(chunk_rows,)
+				)
+			except:
+				g.create_dataset(
 				"message_id", data=msg_ids,
 				compression=compression, compression_opts=compression_opts,
-				shuffle=shuffle, chunks=(chunk_rows,)
-			)
-			g.create_dataset(
-				"detail_id", data=det_ids,
+				shuffle=shuffle, chunks=True
+				)
+				g.create_dataset(
+					"detail_id", data=det_ids,
+					compression=compression, compression_opts=compression_opts,
+					shuffle=shuffle, chunks=True
+				)
+				g.create_dataset(
+					"timestamp_ns", data=ts,
+					compression=compression, compression_opts=compression_opts,
+					shuffle=shuffle, chunks=True
+				)
+				g.create_dataset(
+					"level", data=lvl,
+					compression=compression, compression_opts=compression_opts,
+					shuffle=shuffle, chunks=True
+				)
+			
+			# Log level definitions (for round-tripping custom levels)
+			gl = fh.create_group("log_levels")
+			gl.create_dataset(
+				"level_int", data=level_ints,
 				compression=compression, compression_opts=compression_opts,
-				shuffle=shuffle, chunks=(chunk_rows,)
+				shuffle=shuffle, chunks=True
 			)
-			g.create_dataset(
-				"timestamp_ns", data=ts,
-				compression=compression, compression_opts=compression_opts,
-				shuffle=shuffle, chunks=(chunk_rows,)
+			gl.create_dataset(
+				"level_name", data=np.asarray(level_names, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
 			)
-			g.create_dataset(
-				"level", data=lvl,
-				compression=compression, compression_opts=compression_opts,
-				shuffle=shuffle, chunks=(chunk_rows,)
+			gl.create_dataset(
+				"main_color", data=np.asarray(level_main, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
+			)
+			gl.create_dataset(
+				"bold_color", data=np.asarray(level_bold, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
+			)
+			gl.create_dataset(
+				"quiet_color", data=np.asarray(level_quiet, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
+			)
+			gl.create_dataset(
+				"alt_color", data=np.asarray(level_alt, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
+			)
+			gl.create_dataset(
+				"label_color", data=np.asarray(level_label, dtype=object),
+				dtype=str_dt, compression=compression, compression_opts=compression_opts,
+				shuffle=shuffle, chunks=True
 			)
 			
 			# # Optional: store metadata for humans
@@ -1187,22 +1257,6 @@ class LogPile:
 			if missing:
 				raise ValueError(f"Invalid file: missing datasets in '/logs': {missing}")
 			
-			msg_table = g["message_table"][...]
-			det_table = g["detail_table"][...]
-			msg_id = g["message_id"][...]
-			det_id = g["detail_id"][...]
-			ts_ns = g["timestamp_ns"][...]
-			lvl = g["level"][...]
-			
-			# --- Basic shape sanity ---
-			n = len(msg_id)
-			if not (len(det_id) == len(ts_ns) == len(lvl) == n):
-				raise ValueError(
-					"Invalid file: column lengths differ "
-					f"(message_id={len(msg_id)}, detail_id={len(det_id)}, "
-					f"timestamp_ns={len(ts_ns)}, level={len(lvl)})."
-				)
-			
 			# --- Decode tables to Python str (h5py may return bytes depending on dtype) ---
 			def _to_str_array(a):
 				# a may be dtype=object bytes, numpy bytes_, or str
@@ -1213,6 +1267,61 @@ class LogPile:
 					else:
 						out.append(str(x))
 				return out
+			
+			msg_table = g["message_table"][...]
+			det_table = g["detail_table"][...]
+			msg_id = g["message_id"][...]
+			det_id = g["detail_id"][...]
+			ts_ns = g["timestamp_ns"][...]
+			lvl = g["level"][...]
+			
+			# --- Log level definitions (optional) ---
+			if "log_levels" in fh:
+				gl = fh["log_levels"]
+				required_levels = [
+					"level_int", "level_name",
+					"main_color", "bold_color",
+					"quiet_color", "alt_color", "label_color",
+				]
+				if not all(k in gl for k in required_levels):
+					raise ValueError("Invalid file: '/log_levels' missing required datasets.")
+				
+				level_ints = gl["level_int"][...]
+				level_names = _to_str_array(gl["level_name"][...])
+				level_main = _to_str_array(gl["main_color"][...])
+				level_bold = _to_str_array(gl["bold_color"][...])
+				level_quiet = _to_str_array(gl["quiet_color"][...])
+				level_alt = _to_str_array(gl["alt_color"][...])
+				level_label = _to_str_array(gl["label_color"][...])
+				
+				if level_ints.ndim != 1:
+					raise ValueError("Invalid file: '/log_levels/level_int' must be 1D.")
+				
+				n_levels = len(level_ints)
+				if not all(len(x) == n_levels for x in [level_names, level_main, level_bold, level_quiet, level_alt, level_label]):
+					raise ValueError("Invalid file: '/log_levels' datasets have inconsistent lengths.")
+				
+				self.log_levels = [
+					LogLevelDefinition(
+						int(level_ints[i]),
+						level_names[i],
+						main_color=level_main[i],
+						bold_color=level_bold[i],
+						quiet_color=level_quiet[i],
+						alt_color=level_alt[i],
+						label_color=level_label[i],
+					)
+					for i in range(n_levels)
+				]
+			
+			# --- Basic shape sanity ---
+			n = len(msg_id)
+			if not (len(det_id) == len(ts_ns) == len(lvl) == n):
+				raise ValueError(
+					"Invalid file: column lengths differ "
+					f"(message_id={len(msg_id)}, detail_id={len(det_id)}, "
+					f"timestamp_ns={len(ts_ns)}, level={len(lvl)})."
+				)
 			
 			msg_table_py = _to_str_array(msg_table)
 			det_table_py = _to_str_array(det_table)
@@ -1230,7 +1339,7 @@ class LogPile:
 
 			# Levels: you stored int16 already (via str_to_level(...)).
 			# If you have a level_to_str helper, you can optionally decode later.
-			levels = [ level_to_str(int(x), self.log_levels) for x in lvl]
+			levels = lvl # [ level_to_str(int(x), self.log_levels) for x in lvl]
 			
 			# Timestamps: you stored epoch ns. Convert to datetime (UTC).
 			# If your LogEntry expects a string timestamp instead, swap this to .isoformat().
@@ -1289,6 +1398,7 @@ class LogPile:
 			for nm,nd,nt,nl in zip(message_list, detail_list, timestamp_list, level_list):
 				
 				# Create dictionary
+				
 				dd = {'message': nm.decode('utf-8'), 'detail':nd.decode('utf-8'), 'timestamp': nt.decode('utf-8'), 'level':nl.decode('utf-8')}
 				
 				# Create LogEntry
@@ -1297,6 +1407,8 @@ class LogPile:
 					self.logs.append(nl)
 				else:
 					all_success = False
+		
+		self.log_levels = get_default_levels()
 		
 		return all_success
 			
@@ -1366,6 +1478,7 @@ class LogPile:
 			for idx, lg in zip(idx_list, log_list):
 				
 				# Check log level
+				print(f"{type(lg.level)} < {type(min_level)} ?")
 				if lg.level < min_level or lg.level > max_level:
 					continue
 				
