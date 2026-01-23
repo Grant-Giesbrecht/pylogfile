@@ -171,37 +171,7 @@ def level_to_str(lvl:int, level_list:list) -> str:
 	
 	return level_list[idx].level_name
 
-def are_equivalent_entries(log1:LogEntry, log2:LogEntry, time_tol_us:float=10):
-	'''
-	Compares two LogEntry objects. Returns true if they contain equivalent data.
-	'''
-	
-	if log1.message != log2.message:
-		return False
-	if log1.detail != log2.detail:
-		return False
-	if log1.level != log2.level:
-		return False
-	
-	tol = datetime.timedelta(microseconds=time_tol_us)
-	if abs(log1.timestamp - log2.timestamp) > tol:
-		return False
-	
-	return True
 
-def are_equivalent_piles(lp1:LogPile, lp2:LogPile, time_tol_us:float=10):
-	"""
-	Compares two LogPile objects. Returns true if they contain equivalent logs.
-	"""
-	
-	if len(lp1.logs) != len(lp2.logs):
-		return False
-	
-	for idx, l in enumerate(lp1.logs):
-		if not are_equivalent_entries(l, lp2.logs[idx]):
-			return False
-	
-	return True
 
 def find_level_in_list(level, level_list:list):
 	'''
@@ -1522,3 +1492,35 @@ class LogPile:
 						cq = self.str_format.default_color['quiet']
 						print(f"\t{cq}...{Style.RESET_ALL}")
 						break
+
+def are_equivalent_entries(log1:LogEntry, log2:LogEntry, time_tol_us:float=10):
+	'''
+	Compares two LogEntry objects. Returns true if they contain equivalent data.
+	'''
+	
+	if log1.message != log2.message:
+		return False
+	if log1.detail != log2.detail:
+		return False
+	if log1.level != log2.level:
+		return False
+	
+	tol = datetime.timedelta(microseconds=time_tol_us)
+	if abs(log1.timestamp - log2.timestamp) > tol:
+		return False
+	
+	return True
+
+def are_equivalent_piles(lp1:LogPile, lp2:LogPile, time_tol_us:float=10):
+	"""
+	Compares two LogPile objects. Returns true if they contain equivalent logs.
+	"""
+	
+	if len(lp1.logs) != len(lp2.logs):
+		return False
+	
+	for idx, l in enumerate(lp1.logs):
+		if not are_equivalent_entries(l, lp2.logs[idx]):
+			return False
+	
+	return True
