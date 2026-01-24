@@ -298,20 +298,30 @@ class LogEntry:
 			c_alt = str_fmt.default_color['alt']
 			c_label = str_fmt.default_color['label']
 			
+			if show_color_help:
+				print(f"\tDefault colors, from LogFormat object:")
+				sra = Style.RESET_ALL
+				print(f"\t\t{c_main}main{sra}, {c_bold}bold{sra}, {c_quiet}quiet{sra}, {c_alt}alt{sra}, {c_label}label{sra}", flush=True)
+			
 			# Apply level specific changes
 			if level_list is not None:
 				l_idx = find_level_in_list(self.level, level_list)
 				if l_idx is not None:
-					if level_list[l_idx].main_color is not None:
+					if level_list[l_idx].main_color is not None and level_list[l_idx].main_color != "":
 						c_main = level_list[l_idx].main_color
-					if level_list[l_idx].bold_color is not None:
+					if level_list[l_idx].bold_color is not None and level_list[l_idx].bold_color != "":
 						c_bold = level_list[l_idx].bold_color
-					if level_list[l_idx].quiet_color is not None:
+					if level_list[l_idx].quiet_color is not None and level_list[l_idx].quiet_color != "":
 						c_quiet = level_list[l_idx].quiet_color
-					if level_list[l_idx].alt_color is not None:
+					if level_list[l_idx].alt_color is not None and level_list[l_idx].alt_color != "":
 						c_alt = level_list[l_idx].alt_color
-					if level_list[l_idx].label_color is not None:
+					if level_list[l_idx].label_color is not None and level_list[l_idx].label_color != "":
 						c_label = level_list[l_idx].label_color
+			
+			if show_color_help: 
+				print(f"\tAfter override from LogLevelDefinition: level={self.level}")
+				sra = Style.RESET_ALL
+				print(f"\t\t{c_main}main{sra}, {c_bold}bold{sra}, {c_quiet}quiet{sra}, {c_alt}alt{sra}, {c_label}label{sra}", flush=True)
 			
 			# Apply color-overrides
 			if self.level in str_fmt.color_overrides:
@@ -325,6 +335,11 @@ class LogEntry:
 					c_alt = str_fmt.color_overrides[self.level]['alt']
 				if 'label' in str_fmt.color_overrides[self.level]:
 					c_label = str_fmt.color_overrides[self.level]['label']
+			
+			if show_color_help: 
+				print(f"\tAfter override from LogFormat Overrides: level={self.level}")
+				sra = Style.RESET_ALL
+				print(f"\t\t{c_main}main{sra}, {c_bold}bold{sra}, {c_quiet}quiet{sra}, {c_alt}alt{sra}, {c_label}label{sra}", flush=True)
 			
 		else:
 			c_main = ''
