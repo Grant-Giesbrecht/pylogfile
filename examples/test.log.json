@@ -3,32 +3,32 @@
         {
             "message": "This is some >spicy< information.",
             "detail": "lkasdhfjklghasdfbasdfljkhasklasdf",
-            "timestamp": "2024-06-02 11:56:40.185915",
-            "level": "INFO"
+            "timestamp": "2026-01-22 10:35:51.532664",
+            "level": 20
         },
         {
             "message": "10001010>:31011<101",
             "detail": "",
-            "timestamp": "2024-06-02 11:56:40.185915",
-            "level": "DEBUG"
+            "timestamp": "2026-01-22 10:35:51.532746",
+            "level": 10
         },
         {
             "message": "Spooky scary",
             "detail": "lbasdfpjklASDF asd jkhAS DJKL asd jklhgdf aslg",
-            "timestamp": "2024-06-02 11:56:40.185915",
-            "level": "WARNING"
+            "timestamp": "2026-01-22 10:35:51.532755",
+            "level": 30
         },
         {
             "message": "This is an error!",
             "detail": "",
-            "timestamp": "2024-06-02 11:56:40.185915",
-            "level": "ERROR"
+            "timestamp": "2026-01-22 10:35:51.532791",
+            "level": 40
         },
         {
             "message": "Oh no I'm dead XX",
             "detail": "asdfjklhasdfb jkasdfasdjkfasdkfjhasdjklg",
-            "timestamp": "2024-06-02 11:56:40.185915",
-            "level": "CRITICAL"
+            "timestamp": "2026-01-22 10:35:51.532815",
+            "level": 50
         }
     ]
 }
