@@ -136,6 +136,8 @@ class LogFormat:
 	color_overrides:dict = field(default_factory=lambda: {})
 	detail_indent:str = "\t "
 	strip_newlines:bool = True
+	
+	show_color_help:bool = False
 
 def str_to_level(lvl:str, level_list:list) -> int:
 	"""
@@ -287,6 +289,9 @@ class LogEntry:
 		# Get format specifier
 		if str_fmt is None:
 			str_fmt = LogEntry.default_format
+		
+		if str_fmt.show_color_help:
+			show_color_help = True
 		
 		# Apply or wipe colors
 		if str_fmt.use_color:
@@ -755,18 +760,21 @@ class LogPile:
 		
 		self.str_format.show_detail = show_detail
 	
-	def set_terminal_level(self, level_str:str):
+	def set_terminal_level(self, level):
 		"""
 		Sets the terminal display level from a level name string.
 		
 		Parameters:
-			level_str (str): Level to set
+			level_str (str/int): Level to set
 		
 		Returns:
 			None
 		"""
 		
-		self.terminal_level = str_to_level(level_str, self.log_levels)
+		if isinstance(level, str):
+			self.terminal_level = str_to_level(level, self.log_levels)
+		elif isinstance(level, int) or isinstance(level, float):
+			self.terminal_level = int(level)
 	
 	def lowdebug(self, message:str, detail:str=""):
 		"""
