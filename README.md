@@ -29,7 +29,7 @@ pip install pylogfile
 
 ## Example usage
 
-In this example, we create a simple program that sends two log messages and saves them to disk. Here we show how to save to both binary and plain text formats. The [HDF](https://www.hdfgroup.org/) file format is binary, allowing logs to be saved faster and while using less space on disk. We also show how to save to a JSON file, for those who prefer the simplicity of plain text files.
+In this example, we create a simple program that sends two log messages and saves them to disk. Here we show how to save to both binary and plain text formats. `.plflog` files are binary ([HDF5](https://www.hdfgroup.org/) under the hood), allowing logs to be saved faster and while using less space on disk. We also show how to save to a JSON file, for those who prefer the simplicity of plain text files; JSON files carry the exact same data (log entries plus log level definitions) as a `.plflog` file, just in a more verbose, human-readable form.
 
 ```python
 from pylogfile.base import *
@@ -38,7 +38,7 @@ log = LogPile()
 log.info("Something happened. Emphasize >this<.")
 log.error("Something bad happened!")
 
-log.save_hdf("example.log.hdf")
+log.save_plflog("example.log.plflog")
 log.save_json("example.log.json")
 ```
 
@@ -51,7 +51,7 @@ With the corresponding output:
 Lumberjack is a command line interface (CLI) script included with pylogfile that allows log files to quickly be viewed, sorted, and analyzed. A log file can be opened in lumberjack with:
 
 ```
-lumber example.log.hdf
+lumber example.log.plflog
 ```
 
 and the first few logs displayed with the `SHOW` command:

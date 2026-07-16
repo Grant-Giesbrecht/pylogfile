@@ -1,148 +1,209 @@
 {
+    "file_info": {
+        "file_standard": "pylogfile.logpile",
+        "format_version": "1.0",
+        "encoding": "json"
+    },
+    "log_levels": [
+        {
+            "level_int": 5,
+            "level_name": "LOWDEBUG",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[90m"
+        },
+        {
+            "level_int": 10,
+            "level_name": "DEBUG",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[90m"
+        },
+        {
+            "level_int": 20,
+            "level_name": "INFO",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[32m"
+        },
+        {
+            "level_int": 30,
+            "level_name": "WARNING",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[33m"
+        },
+        {
+            "level_int": 40,
+            "level_name": "ERROR",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[91m"
+        },
+        {
+            "level_int": 50,
+            "level_name": "CRITICAL",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[31m"
+        }
+    ],
     "logs": [
         {
             "message": "This is an info message.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.601784",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315199",
+            "level": 20
         },
         {
             "message": "This is an error message.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.601784",
-            "level": "ERROR"
+            "timestamp": "2026-07-16 15:22:44.315238",
+            "level": 40
         },
         {
             "message": "This is a log message.",
             "detail": "This is where we can add a ton ofextra details. This is hidden by default, but still saved with the logs.You can also set details to be shown by default using the code below:",
-            "timestamp": "2024-09-14 13:43:39.601784",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315249",
+            "level": 20
         },
         {
             "message": "We just set `show_detail` to `True`.",
             "detail": "This is the detail string.",
-            "timestamp": "2024-09-14 13:43:39.691847",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315257",
+            "level": 20
         },
         {
             "message": "The messages should now print in blue!",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.751886",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315266",
+            "level": 20
         },
         {
             "message": "The messages will now be colorless",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.801925",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315274",
+            "level": 20
         },
         {
             "message": "Let's demonstrate >bold< text.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.862008",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315280",
+            "level": 20
         },
         {
             "message": "Pi = >3.1415926535<.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.862008",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315292",
+            "level": 20
         },
         {
             "message": "Text type >:bbold<. Can also use >:2bold<.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.932349",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315299",
+            "level": 20
         },
         {
             "message": "Text type >:qquiet<. Can also use >:3quiet<.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.932349",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315310",
+            "level": 20
         },
         {
             "message": "Text type >:aalt<. Can also use >:4alt<.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.932349",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315318",
+            "level": 20
         },
         {
             "message": "Text type >:llabel<. Can also use >:5label<.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.932349",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315326",
+            "level": 20
         },
         {
             "message": "Permanently change to >>:q quiet >:1 Show main < Now >bold< and back to quiet.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.981910",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315334",
+            "level": 20
         },
         {
             "message": "New log resets back to main.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:39.981910",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315345",
+            "level": 20
         },
         {
             "message": "Backslash escapes color change sequences. \\>no color change\\<",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.041943",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315350",
+            "level": 20
         },
         {
             "message": "\\>\\>:3no color change\\<",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.041943",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315360",
+            "level": 20
         },
         {
             "message": "This is a lowdebug message",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.092707",
-            "level": "LOWDEBUG"
+            "timestamp": "2026-07-16 15:22:44.315366",
+            "level": 5
         },
         {
             "message": "This is a debug message",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.092707",
-            "level": "DEBUG"
+            "timestamp": "2026-07-16 15:22:44.315367",
+            "level": 10
         },
         {
             "message": "This is an info message",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.092707",
-            "level": "INFO"
+            "timestamp": "2026-07-16 15:22:44.315368",
+            "level": 20
         },
         {
             "message": "This is a warning message",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.092707",
-            "level": "WARNING"
+            "timestamp": "2026-07-16 15:22:44.315373",
+            "level": 30
         },
         {
             "message": "This is a error message",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.092707",
-            "level": "ERROR"
+            "timestamp": "2026-07-16 15:22:44.315379",
+            "level": 40
         },
         {
             "message": "This is a critical message",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.092707",
-            "level": "CRITICAL"
+            "timestamp": "2026-07-16 15:22:44.315384",
+            "level": 50
         },
         {
             "message": "Changing terminal level to DEBUG.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.142707",
-            "level": "DEBUG"
+            "timestamp": "2026-07-16 15:22:44.315391",
+            "level": 10
         },
         {
             "message": "So lowdebug messages still will not be displayed.",
             "detail": "",
-            "timestamp": "2024-09-14 13:43:40.142707",
-            "level": "LOWDEBUG"
+            "timestamp": "2026-07-16 15:22:44.315397",
+            "level": 5
         }
     ]
 }

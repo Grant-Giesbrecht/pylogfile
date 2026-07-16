@@ -32,8 +32,6 @@ __all__ = [
 ]
 
 #TODO: Save only certain log levels
-#TODO: Autosave
-#TODO: Save log_level list to file
 #NOTE: Currently, if info() or etc is called, and those levels are NOT defined, it will still record logs. It just saves them with a hard coded number. I think this is good?
 #TODO: Add validate() function to see if any logs have undefined log levels.
 
@@ -77,7 +75,7 @@ def _epoch_ns_to_datetime(ns: int) -> datetime:
 class UnknownLogFileFormat(ValueError):
 	pass
 
-def _detect_pylogfile_hdf_format(fh: h5py.File) -> str:
+def _detect_pylogfile_format(fh: h5py.File) -> str:
 	"""
 	Return one of: "compressed", "legacy"
 	Raise UnknownLogFileFormat if it doesn't look like either.
@@ -116,7 +114,7 @@ def _detect_pylogfile_hdf_format(fh: h5py.File) -> str:
 			return "1.0"
 	
 	raise UnknownLogFileFormat(
-		"Unrecognized HDF5 layout: not a pylogfile legacy or compressed log file."
+		"Unrecognized HDF5 layout: not a pylogfile .plflog file (legacy v0 or compressed v1)."
 	)
 
 class SortConditions:
@@ -675,6 +673,34 @@ def get_default_levels():
 	
 	return log_levels
 
+def _level_definition_to_dict(ld:LogLevelDefinition) -> dict:
+	""" Serializes a LogLevelDefinition to a plain dict, for use in JSON (and
+	similar) log level tables. """
+
+	return {
+		"level_int": ld.level_int,
+		"level_name": ld.level_name,
+		"main_color": ld.main_color,
+		"bold_color": ld.bold_color,
+		"quiet_color": ld.quiet_color,
+		"alt_color": ld.alt_color,
+		"label_color": ld.label_color,
+	}
+
+def _level_definition_from_dict(d:dict) -> LogLevelDefinition:
+	""" Reconstructs a LogLevelDefinition from a dict produced by
+	_level_definition_to_dict(). """
+
+	return LogLevelDefinition(
+		d["level_int"],
+		d["level_name"],
+		main_color=d.get("main_color", ""),
+		bold_color=d.get("bold_color", ""),
+		quiet_color=d.get("quiet_color", ""),
+		alt_color=d.get("alt_color", ""),
+		label_color=d.get("label_color", ""),
+	)
+
 class LogPile:
 	"""
 	Organizes a collection of LogEntries and creates new ones. All functions
@@ -689,49 +715,31 @@ class LogPile:
 		terminal_output_enable (bool): Enables or disables automatically \
 			printing each log to the standard output.
 		terminal_level (int): Log level, at or above, which logs will print to \
-			the standard output. 
-		autosave_enable (bool): Tracks if autosave is enabled
-		filename (str): Name to autosave
-		autosave_period_s (float): Time between autosaves in seconds
-		autosave_level (int): Minimum log level to save. 
-		autosave_format (str): File format for autosave. Options are 'format-json' and 'format-txt'.
+			the standard output.
 		str_fmt (LogFormat): LogFormat settings
 		logs (list): List of LogEntries contained in the LogPile.
 		log_mutex (Lock): Used to protect the `logs` attribute and allow the \
 			creation of logs across multiple threads.
 		run_mutex (Lock): Used to protect
-	
+
 	"""
-	
-	#TODO: Add HDF
-	JSON = "format-json"
-	TXT = "format-txt"
-	
-	#TODO: Implement autosave. and autosave settigns.  
-	def __init__(self, filename:str="", autosave:bool=False, str_fmt:LogFormat=None, use_mutex:bool=True, level_list:list=None):
+
+	def __init__(self, str_fmt:LogFormat=None, use_mutex:bool=True, level_list:list=None):
 		"""
-		Constructor for LogPile class. 
-		
+		Constructor for LogPile class.
+
 		Parameters:
-			filename (str): Name of file to autosave to.
-			autosave (bool): Enable or disable autosave
 			str_fmt (LogFormat): Optional logformat settings.
-		
+
 		"""
-		
+
 		# Initialize format with defautl
 		if str_fmt is None:
 			str_fmt = LogFormat()
-		
+
 		self.terminal_output_enable = True
 		self.terminal_level = INFO
-		
-		self.autosave_enable = autosave
-		self.filename = filename
-		self.autosave_period_s = 300
-		self.autosave_level = INFO
-		self.autosave_format = LogPile.JSON
-		
+
 		self.str_format = str_fmt
 		
 		self.logs = []
@@ -1000,54 +1008,82 @@ class LogPile:
 			return [x.get_dict() for x in self.logs]
 	
 	def save_json(self, save_filename:str):
-		"""Saves all log data to a JSON file.
-		
+		""" Saves the LogPile to a JSON file, carrying the same data as
+		save_plflog(file_version="1.0"): every log entry, plus the full log
+		level definitions (names and colors) needed to restore an equivalent
+		LogPile on load. JSON is far less compact than a compressed .plflog
+		file, but is human-readable and doesn't require h5py to read.
+
 		Parameters:
 			save_filename (str): filename to save
-		
+
 		Returns:
 			None
 		"""
-		
-		ad = self.to_dict()
-		
-		# Open file
+
+		out = {
+			"file_info": {
+				"file_standard": "pylogfile.logpile",
+				"format_version": "1.0",
+				"encoding": "json",
+			},
+			"log_levels": [_level_definition_to_dict(ld) for ld in self.log_levels],
+			"logs": self.to_dict(),
+		}
+
 		with open(save_filename, 'w') as fh:
-			json.dump({"logs":ad}, fh, indent=4)
-	
+			json.dump(out, fh, indent=4)
+
 	def load_json(self, read_filename:str, clear_previous:bool=True) -> bool:
 		"""
-		Reads logs from a JSON file.
-		
+		Reads a LogPile from a JSON file previously written by save_json(),
+		including its log level definitions.
+
 		Parameters:
 			read_filename (str): Name of file to read
 			clear_previous (bool): Sets whether previous logs contained in the \
 				LogPile shouold be erased before reading the file.
-			
+
 		Returns:
 			(bool): True if successfully read file
 		"""
-		
+
 		all_success = True
-		
+
 		# Read JSON dictionary
 		with open(read_filename, 'r') as fh:
 			ad = json.load(fh)
-		
+
+		# --- Validate file identity / version (mirrors _load_v1_plflog) ---
+		file_info = ad.get('file_info', {})
+		file_standard = file_info.get('file_standard')
+		encoding = file_info.get('encoding')
+
+		if file_standard != "pylogfile.logpile":
+			raise ValueError(f"Unsupported or missing file_standard={file_standard!r} (expected a JSON file produced by LogPile.save_json()).")
+		if encoding != "json":
+			raise ValueError(f"Unsupported encoding={encoding!r} (expected 'json').")
+
+		new_log_levels = [_level_definition_from_dict(d) for d in ad.get('log_levels', [])]
+
 		with self.log_mutex:
-			
+
 			# Clear old logs
 			if clear_previous:
 				self.logs = []
-			
+
+			# Restore the log level definitions, if any were saved
+			if new_log_levels:
+				self.log_levels = new_log_levels
+
 			# Populate logs
-			for led in ad['logs']:
+			for led in ad.get('logs', []):
 				nl = LogEntry()
 				if nl.init_dict(led):
 					self.logs.append(nl)
 				else:
 					all_success = False
-		
+
 		return all_success
 	
 	def save_plflog(self, filename:str, file_version:str="1.0"):
@@ -1066,18 +1102,9 @@ class LogPile:
 		else: # Default to newest version
 			return self._save_v1_plflog(filename)
 	
-	def save_hdf(self, save_filename:str):
-		'''
-		Save the LogPile data to an HDF file. This function is being renamed to
-		_save_v0_plf, which is itself called by save_plf.
-		'''
-		
-		print(f"WARNING: This function is deprecated and will be removed. Replace with save_plf.")
-		self.save_plflog(save_filename=save_filename)
-	
 	def _save_v0_plflog(self, save_filename):
 		"""
-		Saves all logs to an HDF5 file.
+		Saves all logs to a legacy (v0) .plflog file (HDF5-based).
 		
 		Parameters:
 			save_filename (str): Name of file to save to
@@ -1099,7 +1126,7 @@ class LogPile:
 		# level list is ignored in favor of the v0 defaults. 
 		default_levels = get_default_levels()
 		
-		# Create HDF data types
+		# Build the column data for the HDF5 datasets
 		for de in ad:
 
 			message_list.append(de['message'])
@@ -1325,7 +1352,7 @@ class LogPile:
 	
 	def _load_v1_plflog(self, filename: str, clear_previous:bool=True):
 		"""
-		Load logs from the updated compressed pylogfile LogPile HDF5 file created by save_compressed_hdf().
+		Load logs from the compressed (v1) .plflog file (HDF5-based) created by _save_v1_plflog().
 		
 		This populates the current LogPile instance (clears existing logs) and returns self.
 		
@@ -1478,7 +1505,7 @@ class LogPile:
 	
 	def _load_v0_plflog(self, read_filename:str, clear_previous:bool=True):
 		"""
-		Reads logs from an HDF5 file.
+		Reads logs from a legacy (v0) .plflog file (HDF5-based).
 		
 		Parameters:
 			read_filename (str): Name of file to read
@@ -1523,20 +1550,17 @@ class LogPile:
 					all_success = False
 		
 		return all_success
-			
-	def load_hdf(self, read_filename:str, clear_previous:bool=True):
-		
-		print(f"WARNING: This function is deprecated and will be removed. Replace with load_plf.")
-		self.load_plflog(read_filename, clear_previous)
 	
 	def load_plflog(self, filename:str, clear_previous:bool=True):
 		"""
-		Load *any* pylogfile LogPile HDF5 file (legacy or compressed) by auto-detecting format.
-		Returns self.
+		Load any pylogfile .plflog file (legacy v0 or compressed v1) by auto-detecting its format.
+
+		Returns:
+			(bool): Success status
 		"""
-		
+
 		with h5py.File(filename, "r") as fh:
-			fmt = _detect_pylogfile_hdf_format(fh)
+			fmt = _detect_pylogfile_format(fh)
 
 		# Re-open inside the chosen loader (simpler; avoids keeping handles around)
 		if fmt == "1.0":
@@ -1551,11 +1575,7 @@ class LogPile:
 	#TODO: Implement or remove this
 	def save_txt(self):
 		pass
-	
-	# TODO: Implement or remove this
-	def begin_autosave(self):
-		pass
-	
+
 	def show_logs(self, min_level:int=LOWDEBUG, max_level:int=CRITICAL, max_number:int=None, from_beginning:bool=False, show_index:bool=True, sort_orders:SortConditions=None, str_fmt:LogFormat=None):
 		"""
 		Prints to standard output the logs matching the specified conditions.

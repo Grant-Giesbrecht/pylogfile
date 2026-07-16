@@ -1,33 +1,94 @@
 {
+    "file_info": {
+        "file_standard": "pylogfile.logpile",
+        "format_version": "1.0",
+        "encoding": "json"
+    },
+    "log_levels": [
+        {
+            "level_int": 5,
+            "level_name": "LOWDEBUG",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[90m"
+        },
+        {
+            "level_int": 10,
+            "level_name": "DEBUG",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[90m"
+        },
+        {
+            "level_int": 20,
+            "level_name": "INFO",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[32m"
+        },
+        {
+            "level_int": 30,
+            "level_name": "WARNING",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[33m"
+        },
+        {
+            "level_int": 40,
+            "level_name": "ERROR",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[91m"
+        },
+        {
+            "level_int": 50,
+            "level_name": "CRITICAL",
+            "main_color": "",
+            "bold_color": "",
+            "quiet_color": "",
+            "alt_color": "",
+            "label_color": "\u001b[31m"
+        }
+    ],
     "logs": [
         {
             "message": "This is some >spicy< information.",
             "detail": "lkasdhfjklghasdfbasdfljkhasklasdf",
-            "timestamp": "2026-01-22 10:35:51.532664",
+            "timestamp": "2026-07-16 15:11:22.766639",
             "level": 20
         },
         {
             "message": "10001010>:31011<101",
             "detail": "",
-            "timestamp": "2026-01-22 10:35:51.532746",
+            "timestamp": "2026-07-16 15:11:22.766682",
             "level": 10
         },
         {
             "message": "Spooky scary",
             "detail": "lbasdfpjklASDF asd jkhAS DJKL asd jklhgdf aslg",
-            "timestamp": "2026-01-22 10:35:51.532755",
+            "timestamp": "2026-07-16 15:11:22.766684",
             "level": 30
         },
         {
             "message": "This is an error!",
             "detail": "",
-            "timestamp": "2026-01-22 10:35:51.532791",
+            "timestamp": "2026-07-16 15:11:22.766695",
             "level": 40
         },
         {
             "message": "Oh no I'm dead XX",
             "detail": "asdfjklhasdfb jkasdfasdjkfasdkfjhasdjklg",
-            "timestamp": "2026-01-22 10:35:51.532815",
+            "timestamp": "2026-07-16 15:11:22.766702",
             "level": 50
         }
     ]

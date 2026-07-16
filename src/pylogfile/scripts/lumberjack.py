@@ -48,7 +48,7 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 
 #TODO: Change where elipses print for --last
 
-#TODO: Bug: will crash if provided an invalid/corrupt HDF file (INFO on an empty log file is now handled)
+#TODO: Bug: will crash if provided an invalid/corrupt plflog file (INFO on an empty log file is now handled)
 
 #TODO: Make it so you can apply search strings to only details or only message or both
 #TODO: Modify keyword search to preserve strings so phrass can be searched
@@ -223,7 +223,7 @@ def main():
 			print("\tFailed to read JSON file.")
 	else:
 		if not log.load_plflog(filename):
-			print("\tFailed to read HDF")
+			print("\tFailed to read plflog file.")
 	
 	# Show all logs if requested
 	if args.all:
