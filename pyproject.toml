@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pylogfile"
-version = "0.4.1"
+dynamic = ["version"]
 authors = [
   { name="Grant Giesbrecht", email="grant.giesbrecht@colorado.edu" },
 ]
@@ -13,11 +13,11 @@ readme = "README.md"
 requires-python = ">=3.9"
 classifiers = [
 	"Programming Language :: Python :: 3",
-	"License :: OSI Approved :: MIT License",
+	"License :: OSI Approved :: BSD License",
 	"Operating System :: OS Independent",
 ]
 dependencies = [
-	'numpy >= 2.0.0',
+	'numpy >= 1.21.0',
 	'h5py >= 3.11.0',
 	'colorama >= 0.4.6'
 ]
@@ -29,8 +29,11 @@ Issues = "https://github.com/Grant-Giesbrecht/pylogfile/issues"
 [project.scripts]
 lumber = "pylogfile.scripts.lumberjack:main"
 
+[tool.setuptools.dynamic]
+version = {attr = "pylogfile.__version__"}
+
 [tool.setuptools.package-data]
-lumber_help = ["pylogfile.scripts.assets.lumperjack_help.json"]
+"pylogfile.scripts" = ["assets/*.json"]
 
 [project.license]
 file = "LICENSE"

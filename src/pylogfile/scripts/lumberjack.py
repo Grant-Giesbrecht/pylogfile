@@ -48,7 +48,7 @@ def barstr(text:str, width:int=80, bc:str='*', pad:bool=True):
 
 #TODO: Change where elipses print for --last
 
-#TODO: Bug: will crash if provided invalid HDF file, or file with no logs (and run show -l)
+#TODO: Bug: will crash if provided an invalid/corrupt HDF file (INFO on an empty log file is now handled)
 
 #TODO: Make it so you can apply search strings to only details or only message or both
 #TODO: Modify keyword search to preserve strings so phrass can be searched
@@ -219,7 +219,7 @@ def main():
 	# Read file
 	
 	if filename[-5:].upper() == ".JSON":
-		if not log.load_plflog(filename):
+		if not log.load_json(filename):
 			print("\tFailed to read JSON file.")
 	else:
 		if not log.load_plflog(filename):
@@ -637,13 +637,16 @@ def main():
 				print(f"        {Fore.LIGHTBLACK_EX}Number of ERROR: {Style.RESET_ALL}{nerror}")
 				print(f"        {Fore.LIGHTBLACK_EX}Number of CRITICAL: {Style.RESET_ALL}{ncritical}")
 				print(f"        {Fore.LIGHTBLACK_EX}Number of other: {Style.RESET_ALL}{nother}")
-			t_elapsed = log.logs[-1].timestamp - log.logs[0].timestamp
-			print(f"    {Fore.YELLOW}Timespan: {Style.RESET_ALL}{t_elapsed}")
-			if long_mode:
-				ts_0 = log.logs[0].timestamp
-				ts_1 = log.logs[-1].timestamp
-				print(f"        {Fore.LIGHTBLACK_EX}First timestamp: {Style.RESET_ALL}{ts_0}")
-				print(f"        {Fore.LIGHTBLACK_EX}Last timestamp: {Style.RESET_ALL}{ts_1}")
+			if len(log.logs) > 0:
+				t_elapsed = log.logs[-1].timestamp - log.logs[0].timestamp
+				print(f"    {Fore.YELLOW}Timespan: {Style.RESET_ALL}{t_elapsed}")
+				if long_mode:
+					ts_0 = log.logs[0].timestamp
+					ts_1 = log.logs[-1].timestamp
+					print(f"        {Fore.LIGHTBLACK_EX}First timestamp: {Style.RESET_ALL}{ts_0}")
+					print(f"        {Fore.LIGHTBLACK_EX}Last timestamp: {Style.RESET_ALL}{ts_1}")
+			else:
+				print(f"    {Fore.YELLOW}Timespan: {Style.RESET_ALL}N/A (no logs)")
 			# print(f"    {Fore.YELLOW}MAX-LEVEL: {Style.RESET_ALL}{max_level}")
 			# print(f"    {Fore.YELLOW}NUM-PRINT: {Style.RESET_ALL}{head_len}")
 		else:

@@ -12,6 +12,24 @@ import h5py
 import threading
 import sys
 
+__all__ = [
+	"NOTSET", "LOWDEBUG", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL",
+	"UnknownLogFileFormat",
+	"SortConditions",
+	"LogFormat",
+	"LogEntry",
+	"LogLevelDefinition",
+	"LogPile",
+	"str_to_level",
+	"level_to_str",
+	"find_level_in_list",
+	"markdown",
+	"mdprint",
+	"get_default_levels",
+	"are_equivalent_entries",
+	"are_equivalent_piles",
+]
+
 #TODO: Save only certain log levels
 #TODO: Autosave
 #TODO: Save log_level list to file
@@ -102,13 +120,14 @@ def _detect_pylogfile_hdf_format(fh: h5py.File) -> str:
 
 class SortConditions:
 	""" Class used to define the conditions of a LogEntry sort request."""
-	
-	time_start = None
-	time_end = None
-	contains_and = []
-	contains_or = []
-	index_start = None
-	index_end = None
+
+	def __init__(self):
+		self.time_start = None
+		self.time_end = None
+		self.contains_and = []
+		self.contains_or = []
+		self.index_start = None
+		self.index_end = None
 
 class DummyMutex:
 	def __init__(self):
@@ -142,35 +161,35 @@ class LogFormat:
 def str_to_level(lvl:str, level_list:list) -> int:
 	"""
 	Converts a log level string to its associated int code.
-	
+
 	Args:
 		lvl (str): Log level string, case-insensitive
-	
+
 	Returns:
-		int: The log level int code. Returns -1 if not found.
+		int: The log level int code. Returns None if not found.
 	"""
-	
+
 	idx = find_level_in_list(lvl, level_list)
 	if idx is None:
-		return -1
-	
+		return None
+
 	return level_list[idx].level_int
 
 def level_to_str(lvl:int, level_list:list) -> str:
 	"""
 	Converts a log level int to its associated string code.
-	
+
 	Args:
 		lvl (str): Log level string
-	
+
 	Returns:
-		str: The log level string code
+		str: The log level string code. Returns None if not found.
 	"""
-	
+
 	idx = find_level_in_list(lvl, level_list)
 	if idx is None:
-		return -1
-	
+		return None
+
 	return level_list[idx].level_name
 
 
@@ -360,7 +379,10 @@ class LogEntry:
 			
 		
 		# Create base string
-		s = f"{c_alt}[{c_label}{level_to_str(self.level, level_list)}{c_alt}]{c_main} {markdown(message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
+		level_str = level_to_str(self.level, level_list)
+		if level_str is None:
+			level_str = str(self.level)
+		s = f"{c_alt}[{c_label}{level_str}{c_alt}]{c_main} {markdown(message, str_fmt)} {c_quiet}| {self.timestamp}{Style.RESET_ALL}"
 		
 		# Add detail if requested
 		if str_fmt.show_detail and len(detail) > 0:
@@ -772,7 +794,11 @@ class LogPile:
 		"""
 		
 		if isinstance(level, str):
-			self.terminal_level = str_to_level(level, self.log_levels)
+			lvl_int = str_to_level(level, self.log_levels)
+			if lvl_int is None:
+				print(f"Unrecognized log level '{level}'. Terminal level unchanged.")
+				return
+			self.terminal_level = lvl_int
 		elif isinstance(level, int) or isinstance(level, float):
 			self.terminal_level = int(level)
 	
@@ -1004,11 +1030,18 @@ class LogPile:
 		
 		# Create HDF data types
 		for de in ad:
-			
+
 			message_list.append(de['message'])
 			detail_list.append(de['detail'])
 			timestamp_list.append(de['timestamp'])
-			level_list.append( level_to_str( de['level'], default_levels) )
+
+			# Fall back to the raw level number (as a string) if it isn't one of
+			# the v0 default levels, so an unregistered custom level can't crash
+			# the save (see NOTE above: v0 can't represent custom levels anyway).
+			lvl_str = level_to_str( de['level'], default_levels)
+			if lvl_str is None:
+				lvl_str = str(de['level'])
+			level_list.append(lvl_str)
 		
 		# Write file
 		with h5py.File(save_filename, 'w') as fh:
@@ -1024,8 +1057,17 @@ class LogPile:
 		# Pull columns
 		messages  = [de.get("message", "") for de in ad]
 		details   = [de.get("detail",  "") for de in ad]
-		levels    = [str_to_level(de.get("level",   0), self.log_levels)  for de in ad]
 		timestamps = [de.get("timestamp", 0) for de in ad]
+
+		# Canonicalize each level against self.log_levels where possible, but
+		# fall back to the raw level number if it isn't registered (custom/
+		# hardcoded levels are allowed to be logged without being registered -
+		# see NOTE near the top of this file).
+		levels = []
+		for de in ad:
+			raw_level = de.get("level", 0)
+			resolved = str_to_level(raw_level, self.log_levels)
+			levels.append(resolved if resolved is not None else raw_level)
 
 		# ---- Ensure timestamp is compact ----
 		# If timestamps are already numeric (recommended): keep as int64.

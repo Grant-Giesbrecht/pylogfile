@@ -77,7 +77,7 @@ Pylogfile's documentation can be found on [ReadTheDocs](https://pylogfile.readth
 ## Requirements
 
 - Python >= 3.9
-- numpy >= 1.0.0
+- numpy >= 1.21.0
 - h5py >= 3.11.0
 - colorama >= 0.4.6
 - importlib >= 1.0.0
