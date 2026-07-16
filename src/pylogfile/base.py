@@ -11,6 +11,7 @@ import numpy as np
 import h5py
 import threading
 import sys
+import types
 
 __all__ = [
 	"NOTSET", "LOWDEBUG", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL",
@@ -755,10 +756,14 @@ class LogPile:
 		
 		# If log_level could not be init from arugments, use default
 		if self.log_levels is None:
-			
+
 			self.log_levels = get_default_levels()
-		
-	
+
+		# Tracks convenience-method names bound by add_level(), so a repeat
+		# add_level() call for the same level name is allowed to rebind it.
+		self._custom_level_methods = set()
+
+
 	def set_enable_mutex(self, enabled:bool):
 		
 		if enabled:
@@ -801,7 +806,73 @@ class LogPile:
 			self.terminal_level = lvl_int
 		elif isinstance(level, int) or isinstance(level, float):
 			self.terminal_level = int(level)
-	
+
+	def add_level(self, lvl_int:int, lvl_name:str, main_color:str="", bold_color:str="", quiet_color:str="", alt_color:str="", label_color:str="") -> LogLevelDefinition:
+		"""
+		Registers a custom log level on this LogPile and binds a matching
+		convenience method to it, e.g. `pile.add_level(25, "NOTICE")` creates
+		`pile.notice(message, detail="")`, mirroring the built-in `.info()`,
+		`.warning()`, etc. methods.
+
+		Calling this again with a `lvl_name` that was already added (case
+		insensitive) updates that level's definition (e.g. to change its
+		colors) and rebinds the same convenience method rather than adding a
+		duplicate entry to `log_levels`.
+
+		NOTE: The convenience method is bound to this specific LogPile
+		*instance*, not the LogPile class. It will not appear in IDE
+		autocomplete or pass static type checking, and it will not exist on
+		any other LogPile instance. If you don't want a dynamic method, just
+		append a LogLevelDefinition to `pile.log_levels` directly instead, and
+		log at that level with `pile.add_log(lvl_int, message)`.
+
+		Parameters:
+			lvl_int (int): Log level int code
+			lvl_name (str): Log level name. Must be a valid Python identifier
+				once lower-cased, since it becomes the convenience method's
+				name, and must not collide with an existing LogPile attribute
+				(e.g. "logs", "add_log", or another built-in level name).
+			main_color (str): Optional markdown 'main' color override
+			bold_color (str): Optional markdown 'bold' color override
+			quiet_color (str): Optional markdown 'quiet' color override
+			alt_color (str): Optional markdown 'alt' color override
+			label_color (str): Optional markdown 'label' color override
+
+		Returns:
+			(LogLevelDefinition): The level definition that was registered
+		"""
+
+		method_name = lvl_name.lower()
+
+		if not method_name.isidentifier():
+			raise ValueError(f"Cannot create a convenience method for level name '{lvl_name}': '{method_name}' is not a valid Python identifier.")
+
+		# Guard against clobbering a real LogPile attribute/method. dir(self),
+		# not dir(type(self)), because attributes like `logs`/`log_levels`/
+		# `terminal_level` are set on the instance in __init__, not the class.
+		# Names this same call previously bound are exempt, so re-calling
+		# add_level() to update a level's colors is allowed.
+		reserved_names = set(dir(self))
+		if method_name in reserved_names and method_name not in self._custom_level_methods:
+			raise ValueError(f"'{method_name}' collides with an existing LogPile attribute and cannot be used as a custom level name.")
+
+		# Register (or replace, if this name was already registered) the level definition
+		ld = LogLevelDefinition(lvl_int, lvl_name, main_color=main_color, bold_color=bold_color, quiet_color=quiet_color, alt_color=alt_color, label_color=label_color)
+		existing_idx = find_level_in_list(lvl_name, self.log_levels)
+		if existing_idx is not None:
+			self.log_levels[existing_idx] = ld
+		else:
+			self.log_levels.append(ld)
+
+		# Bind the convenience method to this instance
+		def _log_at_custom_level(inst, message:str="", detail:str=""):
+			inst.add_log(lvl_int, message, detail=detail)
+
+		setattr(self, method_name, types.MethodType(_log_at_custom_level, self))
+		self._custom_level_methods.add(method_name)
+
+		return ld
+
 	def lowdebug(self, message:str, detail:str=""):
 		"""
 		Logs data at LOWDEBUG level.
