@@ -196,9 +196,13 @@ def level_to_str(lvl:int, level_list:list) -> str:
 def find_level_in_list(level, level_list:list):
 	'''
 	Returns the index of the level object in the level_list which matches
-	the specified level, either as a string (level_name) or int (level_int)
+	the specified level, either as a string (level_name) or int (level_int).
+	Returns None (not found) if level_list is None or empty.
 	'''
-	
+
+	if not level_list:
+		return None
+
 	if isinstance(level, str):
 		for idx, ll in enumerate(level_list):
 			if ll.level_name == level:
@@ -1564,10 +1568,9 @@ class LogPile:
 
 		# Re-open inside the chosen loader (simpler; avoids keeping handles around)
 		if fmt == "1.0":
-			return self._load_v1_plflog(filename)
+			return self._load_v1_plflog(filename, clear_previous=clear_previous)
 		elif fmt == "0.0":
-			# rename your old loader to this:
-			return self._load_v0_plflog(filename)
+			return self._load_v0_plflog(filename, clear_previous=clear_previous)
 
 		# Should never happen
 		raise UnknownLogFileFormat(f"Internal error: unknown format tag {fmt!r}")

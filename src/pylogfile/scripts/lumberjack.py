@@ -271,25 +271,25 @@ def main():
 			if lvl_int is None:
 				print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 				continue
-			
+
 			# Assign min level
-			min_level = lvl_int
+			settings.min_level = lvl_int
 		elif cmd == "MAX-LEVEL":
-			
+
 			# Check number of arguments
 			if len(words) < 2:
 				print(f"{Fore.LIGHTRED_EX}MAX-LEVEL requires a level to be specified.{Style.RESET_ALL}")
 				continue
-			
+
 			# Get level int
-			lvl_str = words[1].upper()
+			lvl_str = words[1].str.upper()
 			lvl_int = str_to_level(lvl_str, log.log_levels)
 			if lvl_int is None:
 				print(f"{Fore.LIGHTRED_EX}Unrecognized level spcifier '{lvl_str}'.{Style.RESET_ALL}")
 				continue
-			
-			# Assign min level
-			max_level = lvl_int
+
+			# Assign max level
+			settings.max_level = lvl_int
 		elif cmd == "SHOW":
 			
 			# Initialize local copies of show parameters, for local overrides
@@ -472,6 +472,9 @@ def main():
 			except Exception as e:
 				w2 = words[1]
 				print(f"{Fore.LIGHTRED_EX}Failed to interpret number provided, '{w2.str}' ({e}).{Style.RESET_ALL}")
+				continue
+
+			settings.num_print = head_len
 		elif cmd == "HELP":
 			
 			HELP_WIDTH = 80
